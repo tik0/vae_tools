@@ -32,16 +32,16 @@ def image_lidar_pair(C, L_dist, L_angle):
     ax2.set_aspect(asp)
     plt.show()
 
-def get_image_dec_enc_samples(grid_x, grid_y, decoder, encoder_mean, encoder_log_var, image_size, Dz):
+def get_image_dec_enc_samples(grid_x, grid_y, model_obj, image_size):
     # grid_x: latent grid vector in x direction
     # grid_y: latent grid vector in y direction
-    # decoder: the decoder network
-    # encoder_mean: the encoder network wich samples the mean
-    # encoder_log_var: the encoder network wich samples the log variance
-    # image_size: The image dimensions from the deoder
-    # Dz: Latent dimension size
+    # image_size: The image dimensions from the decoder
     nx = grid_x.shape[0]
     ny = grid_y.shape[0]
+    encoder_mean = model_obj.get_encoder_mean()
+    encoder_log_var = model_obj.get_encoder_logvar()
+    decoder = model_obj.get_decoder()
+    Dz = model_obj.latent_dim
     
     image_width = image_size[0]
     image_height = image_size[1]
@@ -92,3 +92,107 @@ def random_images_from_set(X_set, image_rows_cols_chns, n):
     plt.show()
     return sampleArray
 
+
+def scatter_encoder(X, label, grid_x, grid_y, model_obj, batch_size = 128):
+    nx = grid_x.shape[0]
+    ny = grid_y.shape[0]
+    Z = model_obj.get_encoder_mean().predict(X, batch_size=batch_size)
+    plt.figure(figsize=(7.5, 7.5))
+    # plt.figure(figsize=(15, 15))
+    fig, (ax1, ax2) = plt.subplots(ncols=2)
+    ax1.scatter(Z[:, 0], Z[:, 1], c=label)
+    ax1.set_aspect("equal")
+    ax2.scatter(Z[:, 0], Z[:, 1])
+    ax2.scatter(np.flipud(np.matlib.repmat(grid_x,nx,1)), np.flipud(np.matlib.repmat(grid_y,ny,1).transpose()), c='r', marker='.')
+    ax2.set_aspect("equal")
+    plt.show()
+
+    
+    
+def lidar_in_out(X_set, num_subplots, model_obj, title = "In- (blue) vs Output (red)"):
+    f, axs = plt.subplots(1, num_subplots, figsize=(20,10), sharex=True, sharey=True)
+    for i in np.arange(num_subplots):
+        ax = axs[i]
+        if not model_obj.use_conv:
+            X = X_set[i,:]
+        else:
+            X = X_set[i,:,:]
+        ax.plot(X, 'b')
+        x_encoded = model_obj.get_encoder_mean().predict(np.expand_dims(X, axis=0))
+        x_decoded = model_obj.get_decoder().predict(x_encoded)
+        ax.plot(np.squeeze(x_decoded), 'r')
+        ax.set_ylim([0.0,1.0])
+        # plt.axis('off')
+    f.subplots_adjust(wspace=0)
+    f.suptitle(title)
+    f.show()
+    
+def get_lidar_dec_enc_samples(grid_x, grid_y, model_obj, stride = 5, plot_mean = False):
+    # grid_x: latent grid vector in x direction
+    # grid_y: latent grid vector in y direction
+    # model_obj: VAE network
+    # stride(int): Stepsize, when to draw an decoding
+    # plot_mean(bool): Plot the encoding every stride's sample
+    nx = grid_x.shape[0]
+    ny = grid_y.shape[0]
+    encoder_mean = model_obj.get_encoder_mean()
+    encoder_log_var = model_obj.get_encoder_logvar()
+    decoder = model_obj.get_decoder()
+    Dz = model_obj.latent_dim
+    
+    figures = []
+    z_reencoded_mean = np.zeros(shape=(ny,nx,Dz))
+    z_reencoded_std = np.zeros(shape=(ny,nx))
+    # Sample  from the latent space and show the means
+    figure = plt.figure()
+    for y_idx, y_val in enumerate(grid_y):
+        figures.append([])
+        for x_idx, x_val in enumerate(grid_x):
+            z_sample = np.array([[x_val, y_val]])
+            x_decoded = decoder.predict(z_sample)
+            z_reencoded_mean[y_idx,x_idx,:] = encoder_mean.predict(x_decoded)
+            z_reencoded_std[y_idx,x_idx] = np.sum(np.exp(encoder_log_var.predict(x_decoded) / 2.0))
+            figures[-1].append(x_decoded)
+            if np.mod(x_idx,stride) == 0 and np.mod(y_idx,stride) == 0:
+                idx = 1 + x_idx/stride + nx/stride * (ny/stride-1-y_idx/stride)
+                figure.add_subplot(ny/stride, nx/stride, int(idx))
+                plt.plot(x_decoded[0], 'b')
+                plt.gca().set_ylim([.0,1.0])
+                plt.axis('off')
+    if plot_mean:
+        plt.show()
+    return figures, z_reencoded_mean, z_reencoded_std
+
+def get_xy_min_max(ax):
+    _ax = ax.flatten('C')
+    num_axis = len(_ax)
+    ylim = np.zeros((num_axis,2))
+    xlim = np.zeros((num_axis,2))
+    for axis_idx in np.arange(num_axis):
+        ylim[axis_idx,:] = _ax[axis_idx].get_ylim()
+        xlim[axis_idx,:] = _ax[axis_idx].get_xlim()
+    return np.amin(ylim), np.amax(ylim), np.amin(xlim), np.amax(xlim)
+
+def set_xy_equal_lim(ax, ylim = None, xlim = None,):
+    _ax = ax.flatten('C')
+    ymin, ymax, xmin, xmax = get_xy_min_max(ax)
+    if ylim is None:
+        ylim = (ymin, ymax) 
+    if xlim is None:
+        xlim = (xmin, xmax) 
+    for axis in _ax:
+        axis.set_xlim(xlim)
+        axis.set_ylim(ylim)
+
+def set_xy_aspect(ax):
+    _ax = ax.flatten('C')
+    for axis in _ax:
+        asp = np.diff(axis.get_xlim())[0] / np.diff(axis.get_ylim())[0]
+        axis.set_aspect(asp)
+
+def remove_xy_ticks(ax):
+    _ax = ax.flatten('C')
+    # remove the x and y ticks
+    for axis in _ax:
+        axis.set_xticks([])
+        axis.set_yticks([])
