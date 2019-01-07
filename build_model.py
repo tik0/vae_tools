@@ -276,9 +276,13 @@ class Vae2dConv(sampling.Sampling, GenericVae):
     def __init__(self):
         pass
     
-    def configure(self, img_rows, img_cols, img_chns, batch_size, filters, num_conv, intermediate_dim, latent_dim, beta):
+    def configure(self, img_rows, img_cols, img_chns, batch_size, filters, intermediate_dim, latent_dim, beta, conv_config = None):
         self.latent_dim = latent_dim
         self.intermediate_dim = intermediate_dim
+        
+        if conv_config == None:
+            conv_config = {"kernel_size" : ((2, 2), (2, 2), 16, 16),
+                           "strides"     : ((1, 1), (2, 2), 1, 1)}
 
         # build the net
         if K.image_data_format() == 'channels_first':
@@ -291,10 +295,10 @@ class Vae2dConv(sampling.Sampling, GenericVae):
         img_cols_2 = np.int(img_cols / 2)
 
         self.x = Input(shape=original_img_size)
-        self.conv_1 = Conv2D(img_chns, kernel_size=(2, 2), padding='same', activation='relu')(self.x)
-        self.conv_2 = Conv2D(filters, kernel_size=(2, 2), padding='same', activation='relu', strides=(2, 2))(self.conv_1)
-        self.conv_3 = Conv2D(filters, kernel_size=num_conv, padding='same', activation='relu', strides=1)(self.conv_2)
-        self.conv_4 = Conv2D(filters, kernel_size=num_conv, padding='same', activation='relu', strides=1)(self.conv_3)
+        self.conv_1 = Conv2D(img_chns, kernel_size=conv_config["kernel_size"][0], padding='same', activation='relu', strides=conv_config["strides"][0])(self.x)
+        self.conv_2 = Conv2D(filters, kernel_size=conv_config["kernel_size"][1], padding='same', activation='relu', strides=conv_config["strides"][0])(self.conv_1)
+        self.conv_3 = Conv2D(filters, kernel_size=conv_config["kernel_size"][2], padding='same', activation='relu', strides=conv_config["strides"][0])(self.conv_2)
+        self.conv_4 = Conv2D(filters, kernel_size=conv_config["kernel_size"][3], padding='same', activation='relu', strides=conv_config["strides"][0])(self.conv_3)
         self.flat = Flatten()(self.conv_4)
         self.hidden = Dense(intermediate_dim, activation='relu')(self.flat)
 
@@ -305,7 +309,7 @@ class Vae2dConv(sampling.Sampling, GenericVae):
 
         # we instantiate these layers separately so as to reuse them later
         self.decoder_hid = Dense(intermediate_dim, activation='relu')
-        self.decoder_upsample = Dense(filters * 14 * 14, activation='relu')
+        self.decoder_upsample = Dense(filters * img_rows_2 * img_cols_2, activation='relu')
 
         if K.image_data_format() == 'channels_first':
             output_shape = (batch_size, filters, img_rows_2, img_cols_2)
@@ -313,14 +317,21 @@ class Vae2dConv(sampling.Sampling, GenericVae):
             output_shape = (batch_size, img_rows_2, img_cols_2, filters)
 
         self.decoder_reshape = Reshape(output_shape[1:])
-        self.decoder_deconv_1 = Conv2DTranspose(filters, kernel_size=num_conv, padding='same', strides=1, activation='relu')
-        self.decoder_deconv_2 = Conv2DTranspose(filters, kernel_size=num_conv, padding='same', strides=1, activation='relu')
+        self.decoder_deconv_1 = Conv2DTranspose(filters, kernel_size=conv_config["kernel_size"][3], padding='same', strides=conv_config["strides"][3], activation='relu')
+        self.decoder_deconv_2 = Conv2DTranspose(filters, kernel_size=conv_config["kernel_size"][2], padding='same', strides=conv_config["strides"][2], activation='relu')
         if K.image_data_format() == 'channels_first':
             output_shape = (batch_size, filters, np.int(img_rows + 1), np.int(img_cols + 1))
         else:
             output_shape = (batch_size, np.int(img_rows + 1), np.int(img_cols + 1), filters)
-        self.decoder_deconv_3_upsamp = Conv2DTranspose(filters, kernel_size=(3, 3), strides=(2, 2), padding='valid', activation='relu')
-        self.decoder_mean_squash = Conv2D(img_chns, kernel_size=2, padding='valid', activation='sigmoid')
+        # TODO add all values by half together:
+        if conv_config["kernel_size"][0] == 1:
+            kernel_size_tmp = (1, conv_config["kernel_size"][1][1] + 1)
+        elif conv_config["kernel_size"][1] == 1:
+            kernel_size_tmp = (conv_config["kernel_size"][1][0] + 1, 1)
+        else:
+            kernel_size_tmp = (conv_config["kernel_size"][1][0] + 1, conv_config["kernel_size"][1][1] + 1)
+        self.decoder_deconv_3_upsamp = Conv2DTranspose(filters, kernel_size=kernel_size_tmp, strides=conv_config["strides"][1], padding='valid', activation='relu')
+        self.decoder_mean_squash = Conv2D(img_chns, kernel_size=conv_config["kernel_size"][0], padding='valid', activation='sigmoid', strides=conv_config["strides"][0])
 
         self.hid_decoded = self.decoder_hid(self.z)
         self.up_decoded = self.decoder_upsample(self.hid_decoded)
@@ -389,7 +400,7 @@ class Cvae2dConv(sampling.Sampling, GenericVae):
         # we instantiate these layers separately so as to reuse them later
         self.decoder_hid_2 = Dense(self.intermediate_dim_2, activation='relu')
         self.decoder_hid = Dense(intermediate_dim, activation='relu')
-        self.decoder_upsample = Dense(filters * 14 * 14, activation='relu')
+        self.decoder_upsample = Dense(filters * img_rows_2 * img_cols_2, activation='relu')
 
         if K.image_data_format() == 'channels_first':
             output_shape = (batch_size, filters, img_rows_2, img_cols_2)

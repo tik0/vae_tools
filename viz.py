@@ -93,12 +93,11 @@ def random_images_from_set(X_set, image_rows_cols_chns, n):
     return sampleArray
 
 
-def scatter_encoder(X, label, grid_x, grid_y, model_obj, batch_size = 128):
+def scatter_encoder(X, label, grid_x, grid_y, model_obj, batch_size = 128, figsize=(7.5, 7.5)):
     nx = grid_x.shape[0]
     ny = grid_y.shape[0]
     Z = model_obj.get_encoder_mean().predict(X, batch_size=batch_size)
-    plt.figure(figsize=(7.5, 7.5))
-    # plt.figure(figsize=(15, 15))
+    plt.figure(figsize=figsize)
     fig, (ax1, ax2) = plt.subplots(ncols=2)
     ax1.scatter(Z[:, 0], Z[:, 1], c=label)
     ax1.set_aspect("equal")
