@@ -1,8 +1,5 @@
 from enum import Enum
-import sys
-
-#sys.modules['tensorflow.keras'] = keras  # substitute keras by tf.keras
-
+import sys, os
 import tensorflow as tf
 from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
 from vae_tools import sampling, setfun, custom_variational_layer
