@@ -9,6 +9,10 @@ from vae_tools import sampling, setfun, custom_variational_layer
 from keras import metrics
 from keras import backend as K
 from keras.models import Model
+try:
+    from keras.layers.merge import concatenate as concat
+except:
+    from tensorflow.python.keras.layers.merge import concatenate as concat
 
 class ReconstructionLoss(Enum):
     '''The reconstruction losses'''
@@ -332,12 +336,12 @@ class MmVae(GenericVae, sampling.Sampling):
                                                                                         reconstruction_loss_metrics):
 
                 # Choose the proper reconstruction loss metric
-                print("encoder_input_dim: ", encoder_input_dim)
+                #print("encoder_input_dim: ", encoder_input_dim)
                 rl = {
                     ReconstructionLoss.MSE: LosslayerReconstructionMSE(weight=encoder_input_dim),
                     ReconstructionLoss.BCE: LosslayerReconstructionBCE(weight=encoder_input_dim),
                 }
-                print("reconstruction_loss_metric: ", reconstruction_loss_metric)
+                #print("reconstruction_loss_metric: ", reconstruction_loss_metric)
                 loss_layer = rl.get(reconstruction_loss_metric)
                 self.loss_layers.append(loss_layer) # Backup the layer for callbacks, etc.
                 loss = loss_layer([x, x_decoded_mean])
