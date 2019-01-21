@@ -1,18 +1,23 @@
 #!/usr/bin/python
 
 from itertools import chain, combinations
-
-def powerset(iterable, minimum_elements_per_set = 1, sets_as_list = False):
-    """Returns the powerset as list with sets as tuples 
+import math
+    
+def powerset(iterable, minimum_elements_per_set = 1, sets_as_list = False, sets_as_set = False):
+    """Returns the powerset as list with sets of tuples
     
     powerset([1,2,3], minimum_elements_per_set = 0) --> [() (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)]
     powerset([1,2,3]) --> [(1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)]
     powerset([1,2,3], minimum_elements_per_set = 2, sets_as_list = True) --> [[1,2] [1,3] [2,3] [1,2,3]]
     """
+    if sets_as_list and sets_as_set:
+        raise Exception("Choose either list or set")
     s = list(iterable)
     powerset = list(chain.from_iterable(combinations(s, r) for r in range(minimum_elements_per_set, len(s)+1)))
     if sets_as_list:
         powerset = [list(current_set) for current_set in powerset]
+    elif sets_as_set:
+        powerset = [set(current_set) for current_set in powerset]
     return powerset
 
 def find_proper_subsets(powerset, cardinality_difference = 1, debug = False):
@@ -51,3 +56,15 @@ def find_proper_subsets(powerset, cardinality_difference = 1, debug = False):
     #print("subset_idx: ", subset_idx)
     #print("superset_idx: ", superset_idx)
     return subset_idx, superset_idx
+
+def get_set_idx_in_powerset(target_set, powerset):
+    '''Get the corresponding index of target_set in the powerset
+
+    target_set (set): Set to find in the powerset
+    powerset (list of set): List of sets to get the index from 
+    '''
+    powerset_indeces = list(range(0, len(powerset)))
+    for powerset_idx, current_set in zip(powerset_indeces, powerset):
+        if current_set == target_set:
+            return powerset_idx
+    raise Exception("No corresponding set found")

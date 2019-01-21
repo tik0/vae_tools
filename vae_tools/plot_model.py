@@ -4,6 +4,12 @@ from PIL import Image
 from random import randint
 from IPython.display import SVG
 from IPython.display import display
+try:
+    from keras.utils.vis_utils import model_to_dot
+except:
+    from tensorflow.python.keras.utils.vis_utils import model_to_dot
+import warnings
+warnings.warn("deprecated, use viz.plot_model", DeprecationWarning)
 
 def plot_model(model, file = None, folder = 'tmp', is_notebook = True, print_svg = False, verbose = True):
     if file == None:
@@ -24,7 +30,7 @@ def plot_model(model, file = None, folder = 'tmp', is_notebook = True, print_svg
         model.summary()
     keras.utils.plot_model(model, to_file=filename_png, show_shapes=True)
     img = Image.open(filename_png)
-    svg = keras.utils.vis_utils.model_to_dot(model).create(prog='dot', format='svg')
+    svg = model_to_dot(model).create(prog='dot', format='svg')
     f = open(filename_svg, 'wb')
     f.write(svg)
     f.close()

@@ -1,7 +1,14 @@
 #!/usr/bin/python
 
 import numpy as np
-from keras.utils.vis_utils import model_to_dot
+
+import keras
+
+try:
+    from keras.utils.vis_utils import model_to_dot
+except:
+    from tensorflow.python.keras.utils.vis_utils import model_to_dot
+
 from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
 from keras.layers import Conv2D, Conv2DTranspose
 from keras.models import Model

@@ -1,7 +1,57 @@
 #!/usr/bin/python
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy
 from skimage.transform import resize
+import os
+import PIL
+from PIL import Image
+import matplotlib
+from matplotlib import offsetbox
+import keras                                                                             
+from random import randint
+from IPython.display import SVG
+from IPython.display import display
+try:
+    from keras.utils.vis_utils import model_to_dot
+except:
+    from tensorflow.python.keras.utils.vis_utils import model_to_dot
+
+
+def plot_model(model, file = None, folder = 'tmp', is_notebook = True, print_svg = False, verbose = True):
+    if file == None:
+        rand = str(randint(0, 65000))
+        filename_png = folder + '/model_' + rand + '.png'
+        filename_svg = folder + '/model_' + rand + '.svg'
+    else:
+        filename_png = folder + '/' + file + '.png'
+        filename_svg = folder + '/' + file + '.svg'
+    if not os.path.exists(folder):
+        try:
+            os.makedirs('tmp')
+        except OSError:
+            print('Error creating temporary directory')
+            return
+    if verbose:
+        print('Store model to filename: ' + filename_png + ' and ' + filename_svg)
+        model.summary()
+    keras.utils.plot_model(model, to_file=filename_png, show_shapes=True)
+    img = Image.open(filename_png)
+    svg = model_to_dot(model).create(prog='dot', format='svg')
+    f = open(filename_svg, 'wb')
+    f.write(svg)
+    f.close()
+    if is_notebook:
+        if print_svg:
+            display(SVG(svg))
+        else:
+            display(img)
+    else:
+        if print_svg:
+            SVG(svg)
+        else:
+            img.show()
+
 
 # Show channels of unit8 RGB image
 def image_channels(C, as_float = True):
@@ -16,7 +66,6 @@ def image_channels(C, as_float = True):
     ax3.imshow(C[:,:,2])
     ax3.set_title('B')
     plt.show()
-
 
 # Show image/lidar pais
 def image_lidar_pair(C, L_dist, L_angle):
@@ -195,3 +244,59 @@ def remove_xy_ticks(ax):
     for axis in _ax:
         axis.set_xticks([])
         axis.set_yticks([])
+        
+def image_resize(image, basewidth = 300, method = PIL.Image.ANTIALIAS):
+    ''' Resize a image from https://stackoverflow.com/a/451580/2084944
+    image:     The image in a 2D numpy array
+    basewidth: Desired image width
+    method:    Method for resizing
+
+    Returns the resized image as 2D numpy array
+    '''
+
+    img = PIL.Image.fromarray(image)
+    wpercent = (basewidth/float(img.size[0]))
+    hsize = int((float(img.size[1])*float(wpercent)))
+    return numpy.asarray(img.resize((basewidth,hsize), method))
+
+def plot_embedding(embeddings, labels, images = None, image_distance_min = float(8e-3),
+                   image_width = 16, colormap="tab10", figsize=None, dpi=None, title=None):
+    ''' Plots the two dimensional embedding (you need to call plt.show() afterwards)
+    embedding:          2D The embedding vector (num_samples, features)
+    labels:             Ground truth labels as float or integers (num_samples, labels)
+    images:             Corresponding highlevel visualization as grayscale
+                        image (num_samples, rows, cols)
+    image_distance_min: don't show points that are closer than this value
+    image_width:        Image width in the plot
+    colormap:           Colormap for the scatterplot
+    figsize:            The plot's size
+    dpi:                The plot's DPI
+    title:              The plot title
+    
+    returns figure object
+    '''
+    X = embeddings
+    y = labels
+    num_samples = embeddings.shape[0]
+    x_min, x_max = np.min(X, 0), np.max(X, 0)
+    X = (X - x_min) / (x_max - x_min)     
+    figure = plt.figure(figsize = figsize, dpi = dpi)
+    ax = plt.subplot(111)
+    plt.scatter(X[:, 0], X[:, 1], c=y/np.max(y), cmap=colormap)
+    if hasattr(offsetbox, 'AnnotationBbox') and not np.any(images == None):
+        ## only print thumbnails with matplotlib > 1.0
+        shown_images = np.array([[1., 1.]])  # just something big
+        for i in range(num_samples):
+            dist = np.sum((X[i] - shown_images) ** 2, 1)
+            if np.min(dist) < image_distance_min:
+                ## don't show points that are too close
+                continue
+            shown_images = np.r_[shown_images, [X[i]]]
+            imagebox = offsetbox.AnnotationBbox(
+                offsetbox.OffsetImage(image_resize(images[i], image_width), cmap=plt.cm.gray_r),
+                X[i])
+            ax.add_artist(imagebox)
+    plt.xticks([]), plt.yticks([])
+    if title is not None:
+        plt.title(title)
+    return figure

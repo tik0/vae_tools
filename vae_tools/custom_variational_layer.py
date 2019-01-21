@@ -6,7 +6,6 @@ import tensorflow as tf
 #from tensorflow.keras import layers
 import tensorflow.keras as keras
 import numpy as np
-from keras.utils.vis_utils import model_to_dot
 from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
 from keras.layers import Conv2D, Conv2DTranspose
 from keras.models import Model
