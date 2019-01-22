@@ -5,9 +5,48 @@ from skimage.transform import resize
 from PIL import Image
 import sys
 import os
+import os.path
 from glob import glob
 import keras
+import random
+import requests
 
+class GoogleDriveDownloader():
+    def __init__(self):
+        pass
+
+    def download_file_from_google_drive(self, id, destination):
+        URL = "https://docs.google.com/uc?export=download"
+        if os.path.isfile(destination):
+            #print("File already available")
+            return
+        session = requests.Session()
+
+        response = session.get(URL, params = { 'id' : id }, stream = True)
+        token = get_confirm_token(response)
+
+        if token:
+            params = { 'id' : id, 'confirm' : token }
+            response = session.get(URL, params = params, stream = True)
+
+        save_response_content(response, destination) 
+        #print("Done")
+
+    def get_confirm_token(self, response):
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                return value
+
+        return None
+
+    def save_response_content(self, response, destination):
+        CHUNK_SIZE = 32768
+
+        with open(destination, "wb") as f:
+            for chunk in response.iter_content(CHUNK_SIZE):
+                if chunk: # filter out keep-alive new chunks
+                    f.write(chunk)
+                    
 def mnist(new_shape = (28, 28, 1), kind='digit', get_single_label = None):
     '''
     digit (str): digit or fashion
@@ -108,3 +147,94 @@ def get_steps_around_hokuyo_center(degree_around_center = 80.):
     angles_around_center = np.arange(start=-(steps_around_center-1)/2, stop=(steps_around_center-1)/2+1, step=1, dtype=float) * degree_around_center / steps_around_center
     return steps_around_center, angles_around_center
 
+def overlay_sets(x_set_input, w_set_input, x_set_label_input, w_set_label_input):
+    '''Overlay two data sets by their labels'''
+    # reorder
+    x_set_label_input_argument = np.argsort(x_set_label_input)
+    w_set_label_input_argument = np.argsort(w_set_label_input)
+    x_set = x_set_input[x_set_label_input_argument,:]
+    w_set = w_set_input[w_set_label_input_argument,:]
+    x_set_label_input = x_set_label_input[x_set_label_input_argument]
+    w_set_label_input = w_set_label_input[w_set_label_input_argument]
+    # cut each class to the same lenght
+    x_set_idx = np.array([], dtype=np.int)
+    w_set_idx = np.array([], dtype=np.int)
+    for idx in np.arange(0,np.min([len(x_set), len(w_set)]), dtype=np.int):
+        if x_set_label_input[idx] == w_set_label_input[idx]:
+            x_set_idx = np.concatenate((x_set_idx, [idx]))
+            w_set_idx = np.concatenate((w_set_idx, [idx]))
+    x_set = x_set[x_set_idx,:]
+    w_set = w_set[w_set_idx,:]
+    x_set_label_input = x_set_label_input[x_set_idx]
+    w_set_label_input = w_set_label_input[w_set_idx]
+    # Check if the labels overlay
+    if np.all(x_set_label_input != w_set_label_input):
+        raise Exception("Labels do not overlay with each other")
+    label_set = x_set_label_input
+    return x_set, w_set, label_set
+
+def mnist_digit_fashion(new_shape = (28, 28, 1), flatten = False):
+    ''' Load the mnist digit and fashion data set 
+    new_shape   : Desired shape of the mnist images
+    flatten     : Flatten the images
+    shuffle     : Shuffle the data set
+    '''
+    
+    # Load the data
+    digit_train, digit_train_label, digit_test, digit_test_label = mnist(new_shape, 'digit')
+    fashion_train, fashion_train_label, fashion_test, fashion_test_label = mnist(new_shape, 'fashion')
+    # Overlay train and test set
+    x_train, w_train, label_train = overlay_sets(digit_train, fashion_train, digit_train_label, fashion_train_label)
+    x_test, w_test, label_test = overlay_sets(digit_test, fashion_test, digit_test_label, fashion_test_label)
+    
+    if flatten:
+        x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+        w_train = w_train.reshape((len(w_train), np.prod(w_train.shape[1:])))
+        x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+        w_test = w_test.reshape((len(w_test), np.prod(w_test.shape[1:])))
+    # Shuffle the training set
+    shuffle_idx = np.arange(0,len(x_train))
+    random.shuffle(shuffle_idx)
+    x_train = x_train[shuffle_idx]
+    w_train = w_train[shuffle_idx]
+    return x_train, w_train, label_train, x_test, w_test, label_test
+        
+
+def emnist(flatten = False, split = 0.99):
+    ''' Load the eMnist digit and fashion data set 
+    flatten     : Flatten the images
+    split       : Percentage of the training set
+    '''
+    # Download the data
+    gdd = GoogleDriveDownloader()
+    file_id = '1vHTjzlr6vm5rPk1BQaTnijzGzxmOxbcZ'
+    destination = '/tmp/eMNSIT_CVAE_latent_dim-2_beta-4.0_epochs-100.npz'
+    gdd.download_file_from_google_drive(file_id, destination)
+    
+    # Load the data from drive
+    loaded = np.load(destination)
+    x_digits = loaded['x_digits']
+    x_fashion = loaded['x_fashion']
+    x_label = loaded['x_label']
+    x_set = x_digits
+    w_set = x_fashion
+    label_set = x_label
+    if flatten:
+        x_set = x_set.reshape((len(x_set), np.prod(x_set.shape[1:])))
+        w_set = w_set.reshape((len(w_set), np.prod(w_set.shape[1:])))
+
+    # Shuffel and define training and test sets
+    shuffel_index = np.arange(len(label_set))
+    random.shuffle(shuffel_index)
+    w_set = w_set[shuffel_index,:]
+    x_set = x_set[shuffel_index,:]
+    label_set = label_set[shuffel_index]
+    train_size = np.int(len(w_set) * split)
+    w_train = w_set[:train_size,:]
+    w_test = w_set[train_size:,:]
+    x_train = x_set[:train_size,:]
+    x_test = x_set[train_size:,:]
+    label_train = label_set[:train_size]
+    label_test = label_set[train_size:]
+
+    return x_train, w_train, label_train, x_test, w_test, label_test

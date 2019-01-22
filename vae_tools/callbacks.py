@@ -96,7 +96,7 @@ def get_tf_summary_image(tag, plot_buf):
         
 class TbDecoding2dGaussian(keras.callbacks.Callback):
     '''Plot the decoding of a images decoder assuming gaussian 2d prior in the latent space'''
-    def __init__(self, log_dir, decoder_model, decoded_image_size = [28,28,1], num_images = 15, tag = "validation/embedding", log_every=1, writer = None, **kwargs):
+    def __init__(self, log_dir, decoder_model, decoded_image_size = [28,28,1], num_images = 15, tag = "validation/decoding", log_every=1, writer = None, **kwargs):
         super().__init__(**kwargs)
         self.decoder_model = decoder_model
         self.tag = tag
@@ -159,7 +159,7 @@ class TbDecoding2dGaussian(keras.callbacks.Callback):
         
 class TbEmbedding(keras.callbacks.Callback):
     '''Plot the embeddings of an encoder to scatter plot and store as image to tensorboard'''
-    def __init__(self, log_dir, data, encoder_model, labels, images = None, tag = "validation/decoding", perplexity = 30, log_every=1, writer = None, **kwargs):
+    def __init__(self, log_dir, data, encoder_model, labels, images = None, tag = "validation/embedding", perplexity = 30, log_every=1, writer = None, **kwargs):
         super().__init__(**kwargs)
         self.data = data
         self.encoder_model = encoder_model

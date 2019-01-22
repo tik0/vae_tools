@@ -424,18 +424,35 @@ class MmVae(GenericVae, sampling.Sampling):
         return self.model
     
     def get_encoder_mean(self, encoder_input_list):
-        set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list), setfun.powerset(self.encoder_inputs, sets_as_set = True))
+        set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list),
+                                                 setfun.powerset(self.encoder_inputs, sets_as_set = True))
         return Model(self.encoder_inputs_powerset[set_idx], self.Z_mean[set_idx])
     
     def get_encoder_logvar(self, encoder_input_list):
-        set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list), setfun.powerset(self.encoder_inputs, sets_as_set = True))
+        set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list),
+                                                 setfun.powerset(self.encoder_inputs, sets_as_set = True))
         return Model(self.encoder_inputs_powerset[set_idx], self.Z_logvar[set_idx])
     
-    def get_decoder(self, latent_input = None):
+    def get_decoder(self, latent_input = None, decoder_output_list = None):
+        ''' Returns the decoder model
+        latent_input               : Some own keras layers which should be used as input
+        decoder_output_list  (list): List of decoder output layers for which the decoder should be build
+
+        rerturns a decoder model with the desired decoder outputs
+        '''
         if latent_input is None:
             latent_input = Input(shape=(self.z_dim,))
         decoder_outputs = []
-        for current_decoder in self.decoder:
+        if decoder_output_list is None:
+            decoder = self.decoder
+        else: # Compare all decoder outputs with the desired outputs and store the net
+            decoder = []
+            for decoder_net in self.decoder:
+                for decoder_output in decoder_output_list:
+                    if decoder_net[-1] == decoder_output:
+                        decoder.append(decoder_net)
+        # Build the final decoder model
+        for current_decoder in decoder:
             decoder_outputs.append(current_decoder[0](latent_input))
             for decoder_element in current_decoder[1:]:
                 decoder_outputs[-1] = decoder_element(decoder_outputs[-1])
