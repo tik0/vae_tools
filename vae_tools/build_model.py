@@ -13,6 +13,9 @@ from keras.models import model_from_json
 import keras
 from . import custom_variational_layer, sampling, layers
 
+import warnings
+warnings.warn("deprecated, use viz.plot_model", DeprecationWarning)
+
 class GenericVae():
     def get_model(self, get_new_model = False):
         if 'model' not in dir(self) or get_new_model:
