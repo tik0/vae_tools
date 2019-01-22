@@ -17,17 +17,31 @@ from keras import metrics
 import keras
 import tensorflow as tf
 
-# KL-divergence between two Gaussian
 def kl_loss(mean1, mean2, log_var1, log_var2):
-    '''kl_loss'''
-    # return log_var2 - log_var1 + np.square(np.exp(log_var1)/np.exp(log_var2)) / 2. + np.square((mean1 - mean2) / (np.exp(log_var2))) 
+    '''KL-divergence between two Gaussian'''
     return - .5 * (1 + log_var1 - log_var2 - ((np.exp(log_var1) + np.square(mean1 - mean2)) / np.exp(log_var2)))
 
 
-# KL-divergence between an abitrary Gaussian and the normal distribution
 def kl_loss_n(mean, log_var):
-    '''kl_loss'''
+    '''KL-divergence between an abitrary Gaussian and the normal distribution'''
     return kl_loss(mean, 0., log_var, 0)
+
+def mean_squared_error(A, B):
+    '''Returns the mean squared error between the datum A and B
+    A & B   (np.array): One datum each
+    
+    returns the mean squared error
+    '''
+    return ((A - B)**2).flatten().mean()
+
+
+def binary_cross_entropy(A, B):
+    '''Returns the binary cross entropy between the datum A and B
+    A & B   (np.array): One datum each
+    
+    returns the binary cross entropy
+    '''
+    return (- (A * np.log(B) + (1-A) * np.log(1-B) )).flatten().sum()
 
 # The elbo check
 def _elbo_check(decoder, encoder_mean, encoder_logvar, data, data_expected_output, sample_from_enc_dec = False, batch_size = 128, entropy = "mse"):

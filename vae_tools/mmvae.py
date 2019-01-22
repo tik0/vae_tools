@@ -1,11 +1,13 @@
 from enum import Enum
 import sys, os
+import itertools
 import tensorflow as tf
 from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
 from vae_tools import sampling, setfun, custom_variational_layer
 from keras import metrics
 from keras import backend as K
 from keras.models import Model
+from keras.models import model_from_json
 try:
     from keras.layers.merge import concatenate as concat
 except:
@@ -117,8 +119,8 @@ class GenericVae():
         ''' Load any model'''
         if name is None: # take the name of the class
             name = self.name
-        filename_json = name + prefix + ".json"
-        filename_h5 = name + prefix + ".h5"
+        filename_json = name + ".json"
+        filename_h5 = name + ".h5"
         # load json and create model
         json_file = open(filename_json, 'r')
         loaded_model_json = json_file.read()
@@ -128,6 +130,42 @@ class GenericVae():
         loaded_model.load_weights(filename_h5)
         print("Loaded model " + name + " from disk")
         return loaded_model
+    
+    def store_model_powerset(self, prefix, model_inputs, get_model_callback = None):
+        ''' Stores the models of a powerset model given it's model inputs
+        This function stores the models with the corresponding input as bitmask:
+        e.g. store_model_powerset('enc_mean_xw_', vae_obj.encoder_inputs, vae_obj.get_encoder_mean)
+        stores the models:
+        enc_mean_xw_10.* : Encoder with input x
+        enc_mean_xw_01.* : Encoder with input w
+        enc_mean_xw_11.* : Encoder with input x and w
+
+        prefix              (str): Some prefix name for storing json and h5 (e.g. enc_mean_xw_)
+        model_inputs       (list): List of keras input layers of the model in corresponding order of bitmask [input_x,input_w]
+        get_model_callback   (cb): Callback function which returns a graph model given a subset of model inputs
+
+        '''
+        bitmask_powerset, bitmask_powerset_str = setfun.get_bitmask_powerset(num_elements = len(model_inputs))
+        for bitmask_set, bitmask_set_str in zip(bitmask_powerset[1:], bitmask_powerset_str[1:]):
+            model_input = list(itertools.compress(model_inputs, bitmask_set))
+            self.store_model(name = prefix + bitmask_set_str, 
+                                model = get_model_callback(model_input), overwrite = True)
+
+    def load_model_powerset(self, prefix, num_elements):
+        ''' Load models of a powerset model given the number of elements
+        This function loads the models with the corresponding:
+        e.g. load_model_powerset('enc_mean_xw_', num_elements = 2) loads the models:
+        enc_mean_xw_10: Encoder as the first list element with bitmask 10
+        enc_mean_xw_01: Encoder as the second list element with bitmask 01
+        enc_mean_xw_11: Encoder as the third list element with bitmask 11
+
+        returns list of loaded models and coresponding bitmask
+        '''
+        encoder_powerset = []
+        bitmask_powerset, bitmask_powerset_str = setfun.get_bitmask_powerset(num_elements)
+        for bitmask_set, bitmask_set_str in zip(bitmask_powerset[1:], bitmask_powerset_str[1:]):
+            encoder_powerset.append(self.load_model(name = prefix + bitmask_set_str))
+        return encoder_powerset, bitmask_powerset
     
 class Warmup:
     '''The Warmup class for value definitions'''

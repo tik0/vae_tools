@@ -2,6 +2,7 @@
 
 from itertools import chain, combinations
 import math
+import numpy as np
     
 def powerset(iterable, minimum_elements_per_set = 1, sets_as_list = False, sets_as_set = False):
     """Returns the powerset as list with sets of tuples
@@ -68,3 +69,24 @@ def get_set_idx_in_powerset(target_set, powerset):
         if current_set == target_set:
             return powerset_idx
     raise Exception("No corresponding set found")
+
+def get_bitmask_powerset(num_elements, format_little_endian = True):
+    '''Returns an incremental bitmask for the powerset of num_elements elements w/ empty set in little endian format
+    num_elements           (int): Number of elements in a set
+    format_little_endian  (bool): Format bitmask as little endian
+    
+    returns the bitmask as numpy array and string
+    '''
+    num_powerset = 2**num_elements
+    bitmask_powerset = np.zeros(shape=(num_powerset, num_elements),dtype=bool)
+    bitmask_powerset_str = []
+    for powerset_idx in range(num_powerset):
+        # format a byte string
+        byte_str = str('{0:0' + str(num_elements) + 'b}').format(powerset_idx)
+        if format_little_endian:
+            byte_str = byte_str[::-1]
+        bitmask_powerset_str.append(byte_str)
+        # compare element wise
+        for bit, bit_idx in zip(byte_str, range(num_elements)):
+            bitmask_powerset[powerset_idx, bit_idx] = bit == '1'
+    return bitmask_powerset, bitmask_powerset_str
