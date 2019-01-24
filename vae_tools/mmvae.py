@@ -46,7 +46,8 @@ class GenericVae():
         decoder_outputs List of decoder outputs [l_L_d_1, l_L_d_2, ..., l_L_d_M]
     """
     
-    def __init__(self, z_dim, encoder, decoder, encoder_inputs_dim, name='GenericVae', \
+    def __init__(self, z_dim, encoder, decoder, encoder_inputs_dim, name='GenericVae',
+                 beta = 1.0, beta_is_normalized = False,
                  reconstruction_loss_metrics = [ReconstructionLoss.MSE]):
         # Sanity checks
         # Single reconstruction loss was given
@@ -69,6 +70,8 @@ class GenericVae():
         self.encoder = encoder
         self.decoder = decoder
         self.encoder_inputs_dim = encoder_inputs_dim
+        self.beta = beta
+        self.beta_is_normalized = beta_is_normalized
         self.reconstruction_loss_metrics = reconstruction_loss_metrics
         # Build corresponding powersets
         self.encoder_inputs = [encoder[0] for encoder in self.encoder]
@@ -85,6 +88,16 @@ class GenericVae():
     #        self.model = Model(self.x, self.y)
     #    return self.model
 
+    def get_beta(self, x_dim = None):
+        ''' Interpretes the normalized beta value based on https://openreview.net/pdf?id=Sy2fzU9gl
+        x_dim    (int): The input dimensionality
+        
+        returns the beta value based on the normalized beta
+        '''
+        if self.beta_is_normalized:
+            return self.beta * x_dim / self.z_dim
+        else:
+            return self.beta
 
     def get_encoder_mean(self):
         ''' Get the encoder model for mean values'''
@@ -297,16 +310,13 @@ class LosslayerReconstructionBCE(LosslayerReconstruction):
     
 class MmVae(GenericVae, sampling.Sampling):
 
-    def __init__(self, z_dim, encoder, decoder, encoder_inputs_dim, beta, reconstruction_loss_metrics, name='MmVae'):
+    def __init__(self, z_dim, encoder, decoder, encoder_inputs_dim, beta, beta_is_normalized = False, beta_mutual = 1.0, reconstruction_loss_metrics = [ReconstructionLoss.MSE], name='MmVae'):
         super().__init__(z_dim=z_dim, encoder=encoder, decoder=decoder,name=name,
                          reconstruction_loss_metrics = reconstruction_loss_metrics,
+                         beta = beta, beta_is_normalized = beta_is_normalized,
                          encoder_inputs_dim = encoder_inputs_dim)
-        # loss parameter
-        self.beta = beta
-        #self.reconstruction_loss = reconstruction_loss
-        # model parameter
         self.sampling_layer = Lambda(self.randn, output_shape=(self.z_dim,), name='sample')
-        
+        self.beta_mutual = beta_mutual
 
     def _configure(self):
         
@@ -383,10 +393,11 @@ class MmVae(GenericVae, sampling.Sampling):
                 reconstruction_loss_set.append(loss)
             reconstruction_loss.extend(reconstruction_loss_set)
         
-        # Calculate the prior losses
+        # Calculate the prior losses for all sets in the powerset
         kl_prior_loss = []
-        for z_mean, z_logvar, inputs in zip(self.Z_mean, self.Z_logvar, self.encoder_powerset):
-            loss_layer = LosslayerDistributionGaussianPrior(weight=self.beta)
+        for z_mean, z_logvar, inputs, encoder_inputs_dim in zip(self.Z_mean, self.Z_logvar,
+                                                                self.encoder_powerset, self.encoder_inputs_dim_powerset):
+            loss_layer = LosslayerDistributionGaussianPrior(weight=self.get_beta(x_dim = sum(encoder_inputs_dim)))
             self.loss_layers.append(loss_layer) # Backup the layer for callbacks, etc.
             loss = loss_layer([z_mean, z_logvar])
             kl_prior_loss.append(loss)
@@ -396,7 +407,7 @@ class MmVae(GenericVae, sampling.Sampling):
         kl_mutual_loss = []
         subset_idx, superset_idx = setfun.find_proper_subsets(self.encoder_inputs_powerset, cardinality_difference = 1, debug = True)
         for A_idx, B_idx in zip(subset_idx, superset_idx):
-            loss_layer = LosslayerDistributionGaussianMutual(weight=self.beta)
+            loss_layer = LosslayerDistributionGaussianMutual(weight=self.beta_mutual)
             self.loss_layers.append(loss_layer) # Backup the layer for callbacks, etc.
             loss = loss_layer([self.Z_mean[B_idx], self.Z_mean[A_idx], self.Z_logvar[B_idx], self.Z_logvar[A_idx]])
             kl_mutual_loss.append(loss)

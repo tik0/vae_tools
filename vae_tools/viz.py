@@ -300,3 +300,24 @@ def plot_embedding(embeddings, labels, images = None, image_distance_min = float
     if title is not None:
         plt.title(title)
     return figure
+
+def plot_losses(losses, plot_elbo = True, figsize=[10,5], dpi=96):
+    ''' Plot all losses
+    losses     (obj): Object of the vae_tools.callbacks.Losses class
+    plot_elbo (bool): Sums all losses and shows them as ELBO
+    figsize   (list): The figure size
+    dpi        (int): The plot's DPI
+    
+    return the figure handle
+    '''
+    num_plots = len(list(losses.history.values())) + int(plot_elbo)
+    f, axs = plt.subplots(num_plots, 1, sharex=True, figsize=[10,5], dpi=96)
+    for idx in range(len(axs)-int(plot_elbo)):
+        axs[idx].plot(list(losses.history.values())[idx])
+        axs[idx].set_xlabel(list(losses.history.keys())[idx])
+    if plot_elbo:
+        axs[-1].plot([sum(values) for values in zip(*list(losses.history.values()))])
+        axs[-1].set_xlabel("ELBO")
+    return f
+    
+    
