@@ -28,7 +28,7 @@ class WarmupMethod(Enum):
     def __str__(self):
         return str(self._member_names_)
 
-class GenericVae():
+class GenericVae(object):
     """A generic VAE model
     
     Member Variables:
@@ -205,7 +205,7 @@ class Losslayer(Layer):
         if self.warmup is not None: # we use the values from warmup instead
             K.set_value(self.weight, warmup.v_init)
         self.is_placeholder = True
-        super().__init__(**kwargs)
+        super(Losslayer, self).__init__(**kwargs)
         
     def warmup_linear(self, epoch):
         slope = self.warmup.v_max - self.warmup.v_init
@@ -232,7 +232,7 @@ class Losslayer(Layer):
         
 class LosslayerDistributionGaussianPrior(Losslayer):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(LosslayerDistributionGaussianPrior, self).__init__(**kwargs)
 
     def call(self, inputs):
         # We assume always a single input of the latent layer consisting of mean and log_var
@@ -252,7 +252,7 @@ class LosslayerDistributionGaussianPrior(Losslayer):
 # Custom loss layer for vanilla VAE
 class LosslayerDistributionGaussianMutual(Losslayer):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(LosslayerDistributionGaussianMutual,self).__init__(**kwargs)
 
     def call(self, inputs):
         # We assume always a single input of the latent layer consisting of mean and log_var
@@ -273,7 +273,7 @@ class LosslayerDistributionGaussianMutual(Losslayer):
 
 class LosslayerReconstruction(Losslayer):
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(LosslayerReconstruction, self).__init__(**kwargs)
         
     def metric(self, x, x_decoded):
         '''Calculation of the metric with x as input and x_decoded as output signal'''
@@ -294,7 +294,7 @@ class LosslayerReconstruction(Losslayer):
 class LosslayerReconstructionMSE(LosslayerReconstruction):
     '''Loss layer for element-wise reconstruction with binary cross-entropy'''
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(LosslayerReconstructionMSE, self).__init__(**kwargs)
 
     def metric(self, x, x_decoded):
         #print("K.get_value(self.weight): ", K.get_value(self.weight))
@@ -303,7 +303,7 @@ class LosslayerReconstructionMSE(LosslayerReconstruction):
 class LosslayerReconstructionBCE(LosslayerReconstruction):
     '''Loss layer for element-wise reconstruction with binary cross-entropy'''
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(LosslayerReconstructionBCE, self).__init__(**kwargs)
 
     def metric(self, x, x_decoded):
         return self.weight * metrics.binary_crossentropy(x, x_decoded)
@@ -311,7 +311,7 @@ class LosslayerReconstructionBCE(LosslayerReconstruction):
 class MmVae(GenericVae, sampling.Sampling):
 
     def __init__(self, z_dim, encoder, decoder, encoder_inputs_dim, beta, beta_is_normalized = False, beta_mutual = 1.0, reconstruction_loss_metrics = [ReconstructionLoss.MSE], name='MmVae'):
-        super().__init__(z_dim=z_dim, encoder=encoder, decoder=decoder,name=name,
+        super(MmVae, self).__init__(z_dim=z_dim, encoder=encoder, decoder=decoder,name=name,
                          reconstruction_loss_metrics = reconstruction_loss_metrics,
                          beta = beta, beta_is_normalized = beta_is_normalized,
                          encoder_inputs_dim = encoder_inputs_dim)
