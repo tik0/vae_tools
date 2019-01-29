@@ -24,7 +24,7 @@ setup(
                       'coloredlogs>=10.0',
                       'matplotlib>=3.0.0',
                       'h5py>=2.8.0',
-                      'scikit-image>=0.15.2',
+                      'scikit-image>=0.14.2',
                       'scikit-learn>=0.20.0',
                       'pandas>=0.17.1',
                       'pycurl>=7.43.0',
