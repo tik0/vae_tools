@@ -109,12 +109,11 @@ class GenericVae(object):
         pass
         #eturn self(self.x, self.z_log_var)
     
-    def store_model(self, name = None, model = None, overwrite = False):
+    @staticmethod
+    def store_model(name = None, model = None, overwrite = False):
         ''' Store any model'''
         if model is None:
             raise Exception('Specify a model to store')
-        if name is None: # take the name of the class
-            name = self.name
         filename_json = name + ".json"
         filename_h5 = name + ".h5"
         # serialize model to JSON
@@ -125,13 +124,12 @@ class GenericVae(object):
             print("Saved model " + name + " to disk")
         if not os.path.isfile(filename_h5) or overwrite:
             # serialize weights to HDF5
-            model.save_weights(filename_h5, save_format='h5')
+            model.save_weights(filename_h5)
             print("Saved weights of model " + name + " to disk")
 
-    def load_model(self, name = None):
+    @staticmethod
+    def load_model(name):
         ''' Load any model'''
-        if name is None: # take the name of the class
-            name = self.name
         filename_json = name + ".json"
         filename_h5 = name + ".h5"
         # load json and create model
