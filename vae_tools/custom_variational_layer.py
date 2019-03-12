@@ -1,10 +1,7 @@
 #!/usr/bin/python
 
 import tensorflow as tf
-# tf.enable_eager_execution()
-#import keras
-#from tensorflow.keras import layers
-import tensorflow.keras as keras
+import keras
 import numpy as np
 from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
 from keras.layers import Conv2D, Conv2DTranspose

@@ -24,7 +24,7 @@ def kl_loss(mean1, mean2, log_var1, log_var2):
 
 def kl_loss_n(mean, log_var):
     '''KL-divergence between an abitrary Gaussian and the normal distribution'''
-    return kl_loss(mean, 0., log_var, 0)
+    return kl_loss(mean, 0., log_var, 0.)
 
 def mean_squared_error(A, B):
     '''Returns the mean squared error between the datum A and B
@@ -32,7 +32,7 @@ def mean_squared_error(A, B):
     
     returns the mean squared error
     '''
-    return ((A - B)**2).flatten().mean()
+    return ((A - B)**2.).flatten().mean()
 
 
 def binary_cross_entropy(A, B):
@@ -41,7 +41,7 @@ def binary_cross_entropy(A, B):
     
     returns the binary cross entropy
     '''
-    return (- (A * np.log(B) + (1-A) * np.log(1-B) )).flatten().sum()
+    return (- (A * np.log(B) + (1.-A) * np.log(1.-B) )).flatten().sum()
 
 # The elbo check
 def _elbo_check(decoder, encoder_mean, encoder_logvar, data, data_expected_output, sample_from_enc_dec = False, batch_size = 128, entropy = "mse"):

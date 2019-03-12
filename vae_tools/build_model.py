@@ -14,7 +14,7 @@ import keras
 from . import custom_variational_layer, sampling, layers
 
 import warnings
-warnings.warn("deprecated, use viz.plot_model", DeprecationWarning)
+warnings.warn("deprecated, use mmvae", DeprecationWarning)
 
 class GenericVae():
     def get_model(self, get_new_model = False):

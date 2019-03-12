@@ -7,8 +7,10 @@ except:
 import keras
 from keras import backend as K
 import matplotlib
+import platform
 
 def check():
+    print("python version: ", platform.python_version())
     print("keras version: " + str(keras.__version__))
     try:
         print("tensorflow version: " + str(tensorflow.VERSION))
@@ -23,4 +25,4 @@ def check():
         print('No GPUs available')
     else:
         print("Available GPUs " + str(avail_gpus))
-
+    

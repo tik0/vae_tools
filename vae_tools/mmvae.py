@@ -13,10 +13,10 @@ try:
 except:
     from tensorflow.python.keras.layers.merge import concatenate as concat
 
-class ReconstructionLoss(Enum):
+class ReconstructionLoss():
     '''The reconstruction losses'''
-    MSE = 1
-    BCE = 2
+    MSE = 'MSE'
+    BCE = 'BCE'
     def __str__(self):
         return str(self._member_names_)
     
@@ -87,6 +87,12 @@ class GenericVae():
     #    if 'model' not in dir(self) or get_new_model:
     #        self.model = Model(self.x, self.y)
     #    return self.model
+    
+    @staticmethod
+    def get_unnormalized_beta(beta_norm, x_dim, z_dim):
+        ''' Returns the unnormlized beta based on input (x) and output (z) dimeniosnality (_dim)
+        '''
+        return beta_norm * x_dim / z_dim
 
     def get_beta(self, x_dim = None):
         ''' Interpretes the normalized beta value based on https://openreview.net/pdf?id=Sy2fzU9gl
@@ -95,7 +101,7 @@ class GenericVae():
         returns the beta value based on the normalized beta
         '''
         if self.beta_is_normalized:
-            return self.beta * x_dim / self.z_dim
+            return self.get_unnormalized_beta(self.beta, x_dim, self.z_dim)
         else:
             return self.beta
 
@@ -178,6 +184,16 @@ class GenericVae():
             model_powerset.append(MmVae.load_model(name = prefix + bitmask_set_str))
         return model_powerset, bitmask_powerset
     
+    @staticmethod
+    def copy_model(model):
+        ''' Deep copy of a model
+        model  (keras.model): Source model
+        returns the deep copy
+        '''
+        _model = keras.models.clone_model(model)
+        _model.set_weights(model.get_weights())
+        return _model
+    
 class Warmup:
     '''The Warmup class for value definitions'''
     def __init__(self, v_init = 0.0, v_max = 1.0, v_max_epoch = 10, method = WarmupMethod.LINEAR):
@@ -189,6 +205,13 @@ class Warmup:
     def __str__(self):
         return str(vars(self))
 
+class LatentEncoder():
+    ''' Definition of the latent MLP encoder '''
+    def __init__(self, layer_dimensions = [1., .5], is_relative = [True, True], activations = ['relu', 'relu']):
+        self.is_relative = is_relative
+        self.layer_dimensions = layer_dimensions
+        self.activations = activations
+    
 from keras.callbacks import LambdaCallback
 class Losslayer(Layer):
     '''Generic loss layer'''
@@ -308,13 +331,23 @@ class LosslayerReconstructionBCE(LosslayerReconstruction):
     
 class MmVae(GenericVae, sampling.Sampling):
 
-    def __init__(self, z_dim, encoder, decoder, encoder_inputs_dim, beta, beta_is_normalized = False, beta_mutual = 1.0, reconstruction_loss_metrics = [ReconstructionLoss.MSE], name='MmVae'):
+    def __init__(self, z_dim, encoder, decoder, encoder_inputs_dim, beta, beta_is_normalized = False, beta_mutual = 1.0, reconstruction_loss_metrics = [ReconstructionLoss.MSE], latent_encoder = None, name='MmVae'):
         super().__init__(z_dim=z_dim, encoder=encoder, decoder=decoder,name=name,
                          reconstruction_loss_metrics = reconstruction_loss_metrics,
                          beta = beta, beta_is_normalized = beta_is_normalized,
                          encoder_inputs_dim = encoder_inputs_dim)
         self.sampling_layer = Lambda(self.randn, output_shape=(self.z_dim,), name='sample')
         self.beta_mutual = beta_mutual
+        self.latent_encoder = latent_encoder
+        self.y = self._configure()
+
+    def _get_reconstruction_loss(self, rl, **kwargs):
+        # Choose the proper reconstruction loss metric
+        if rl is ReconstructionLoss.MSE:
+            return LosslayerReconstructionMSE(**kwargs)
+        if rl is ReconstructionLoss.BCE:
+            return LosslayerReconstructionBCE(**kwargs)
+        return rl # we assume that rl is already a loss layer
 
     def _configure(self):
         
@@ -327,15 +360,16 @@ class MmVae(GenericVae, sampling.Sampling):
                 # Append the next layer to the currently appended element in the set
                 for encoder_layer in encoder_element[1:]:
                     element_output[-1] = encoder_layer(element_output[-1])
-            # Concat all elements of the current set
-            # Note: It is "just" concat to enforce the parameter layers (z_mean & z_logvar) to learn linear
-            #       combinations of the uni-modal cases
-            # TODO: Extension to add a non-linear layer after the concatination
+            # Concat all elements of the current set and append a latent encoder if desired
             if len(element_output) > 1:
                 encoder_outputs_powerset.append(concat(element_output))
-                #################################################################################################
-                #encoder_outputs_powerset.append(Dense(int(intermediate_dim/2), activation='relu')(concat(element_output)))
-                #################################################################################################
+                if self.latent_encoder is not None: # define the hidden encoder network
+                    for r, d, a in  zip(self.latent_encoder.is_relative, self.latent_encoder.layer_dimensions, self.latent_encoder.activations):
+                        # Get the output shape of the former layer and calulate the size of the current layer
+                        shape = d
+                        if r:
+                            shape *= encoder_outputs_powerset[-1].shape[-1]
+                        encoder_outputs_powerset[-1] = Dense(int(shape), activation=a)(encoder_outputs_powerset[-1])
             else:
                 encoder_outputs_powerset.append(element_output[0])
 
@@ -378,13 +412,7 @@ class MmVae(GenericVae, sampling.Sampling):
                                                                                         reconstruction_loss_metrics):
 
                 # Choose the proper reconstruction loss metric
-                #print("encoder_input_dim: ", encoder_input_dim)
-                rl = {
-                    ReconstructionLoss.MSE: LosslayerReconstructionMSE(weight=encoder_input_dim),
-                    ReconstructionLoss.BCE: LosslayerReconstructionBCE(weight=encoder_input_dim),
-                }
-                #print("reconstruction_loss_metric: ", reconstruction_loss_metric)
-                loss_layer = rl.get(reconstruction_loss_metric)
+                loss_layer = self._get_reconstruction_loss(reconstruction_loss_metric, weight = encoder_input_dim)
                 self.loss_layers.append(loss_layer) # Backup the layer for callbacks, etc.
                 loss = loss_layer([x, x_decoded_mean])
                 reconstruction_loss_set.append(loss)
@@ -423,7 +451,6 @@ class MmVae(GenericVae, sampling.Sampling):
         return [cb for cb in self.loss_layers.get_cb_warmup()]
     
     def get_model(self, get_new_model = False):
-        self.y = self._configure()
         #print("\n ------------------------ \n")
         #print("self.encoder_inputs", self.encoder_inputs)
         #print("self.y", self.y)

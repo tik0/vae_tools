@@ -23,13 +23,13 @@ class GoogleDriveDownloader():
         session = requests.Session()
 
         response = session.get(URL, params = { 'id' : id }, stream = True)
-        token = get_confirm_token(response)
+        token = self.get_confirm_token(response)
 
         if token:
             params = { 'id' : id, 'confirm' : token }
             response = session.get(URL, params = params, stream = True)
 
-        save_response_content(response, destination) 
+        self.save_response_content(response, destination) 
         #print("Done")
 
     def get_confirm_token(self, response):
@@ -71,8 +71,20 @@ def mnist(new_shape = (28, 28, 1), kind='digit', get_single_label = None):
     return train, train_label, test, test_label
 
 def camera_lidar(filename, folder_sets, filename_camera, filename_lidar, measurements_per_file, image_shape_old, image_shape_new, lidar_shape_old, lidar_shape_new, lidar_range_max = 5., overwrite = False):
-    # filename(str): Filename to store or load from
-    # folder_sets(str): Folders containing npz files to load from
+    ''' Loading the camera/lidar set and storing the processed data in a temporary file for faster reloading
+    filename        (str): Filename to store or load from
+    folder_sets     (str): Folders containing npz files to load from
+    filename_camera (str): Filename to the camera files
+    filename_lidar  (str): Filename to the camera files
+    measurements_per_file (int) : measurements per file which is loaded for proper allocation
+    image_shape_old (tuple): Original image size
+    image_shape_new (tuple): Target image size for resizing
+    lidar_shape_old (int): Original lidar array size
+    lidar_shape_new (int): Target lidar array size located around the center
+    lidar_range_max (float): Prune measurements grater than this value
+    overwrite       (bool): Overwrite the temporary file
+    '''
+    
     filename_npz = filename + ".npz"
     if not os.path.isfile(filename_npz) or overwrite:
         # Traverse the sets of folders, while every set get one label
@@ -238,3 +250,31 @@ def emnist(flatten = False, split = 0.99):
     label_test = label_set[train_size:]
 
     return x_train, w_train, label_train, x_test, w_test, label_test
+
+
+def lidar_camera_set(lidar_degree_around_center = 80., image_target_rows_cols_chns = (64, 64, 2)):
+    ''' Load the lidar/camera data set 
+    flatten     : Flatten the images
+    split       : Percentage of the training set
+    '''
+    # Load the data
+    steps_around_center, angles_around_center = vae_tools.loader.get_steps_around_hokuyo_center(degree_around_center = lidar_degree_around_center)
+    image_original_rows_cols_chns= (800,800,3)
+    new_shape = image_target_rows_cols_chns
+    old_shape = image_original_rows_cols_chns
+    # measurements_per_file = 111 # 2018-06-02 dataset
+    measurements_per_file = 300 # 2018-06-05 dataset
+    # Download the data (TBD)
+    gdd = GoogleDriveDownloader()
+    file_id = '1_EBi68TBXYbrBV4-9m8gsNJe1-DOnCzg'
+    destination = '/tmp/2018-06-05.zip'
+    gdd.download_file_from_google_drive(file_id, destination)
+    # Process the data
+    # folder = glob('2018-06-02/cyl_r*/') + glob('2018-06-02/box_r*/');
+    # folder = glob('2018-06-05/cyl_r*/') + glob('2018-06-05/box_r*/') + glob('2018-06-05/cyl_g*/');
+    folder = ('../../mVAE/2018-06-05/cyl_r*/', '../../mVAE/2018-06-05/box_r*/', '../../mVAE/2018-06-05/cyl_g*/');
+    X_l, X_c, X_set_label_idx, X_set_label_str = loader.camera_lidar("./Xl-80deg_Xc-64-64-2", folder, 
+                        "_amiro1_sync_front_camera_image_raw-X-pixeldata.npz", 
+                        "_amiro1_sync_laser_scan-X-ranges_intensities_angles.npz", 
+                        measurements_per_file, old_shape, new_shape, 683, steps_around_center, 5., overwrite = False)
+    return X_l, X_c, X_set_label_idx, X_set_label_str
