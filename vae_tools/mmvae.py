@@ -109,12 +109,11 @@ class GenericVae(object):
         pass
         #eturn self(self.x, self.z_log_var)
     
-    def store_model(self, name = None, model = None, overwrite = False):
+    @staticmethod
+    def store_model(name = None, model = None, overwrite = False):
         ''' Store any model'''
         if model is None:
             raise Exception('Specify a model to store')
-        if name is None: # take the name of the class
-            name = self.name
         filename_json = name + ".json"
         filename_h5 = name + ".h5"
         # serialize model to JSON
@@ -125,13 +124,12 @@ class GenericVae(object):
             print("Saved model " + name + " to disk")
         if not os.path.isfile(filename_h5) or overwrite:
             # serialize weights to HDF5
-            model.save_weights(filename_h5, save_format='h5')
+            model.save_weights(filename_h5)
             print("Saved weights of model " + name + " to disk")
 
-    def load_model(self, name = None):
+    @staticmethod
+    def load_model(name):
         ''' Load any model'''
-        if name is None: # take the name of the class
-            name = self.name
         filename_json = name + ".json"
         filename_h5 = name + ".h5"
         # load json and create model
@@ -144,7 +142,8 @@ class GenericVae(object):
         print("Loaded model " + name + " from disk")
         return loaded_model
     
-    def store_model_powerset(self, prefix, model_inputs, get_model_callback = None):
+    @staticmethod
+    def store_model_powerset(prefix, model_inputs, get_model_callback = None, overwrite = False):
         ''' Stores the models of a powerset model given it's model inputs
         This function stores the models with the corresponding input as bitmask:
         e.g. store_model_powerset('enc_mean_xw_', vae_obj.encoder_inputs, vae_obj.get_encoder_mean)
@@ -152,33 +151,32 @@ class GenericVae(object):
         enc_mean_xw_10.* : Encoder with input x
         enc_mean_xw_01.* : Encoder with input w
         enc_mean_xw_11.* : Encoder with input x and w
-
         prefix              (str): Some prefix name for storing json and h5 (e.g. enc_mean_xw_)
         model_inputs       (list): List of keras input layers of the model in corresponding order of bitmask [input_x,input_w]
         get_model_callback   (cb): Callback function which returns a graph model given a subset of model inputs
-
+        overwrite          (bool): Overwrite the model on the disk
         '''
         bitmask_powerset, bitmask_powerset_str = setfun.get_bitmask_powerset(num_elements = len(model_inputs))
         for bitmask_set, bitmask_set_str in zip(bitmask_powerset[1:], bitmask_powerset_str[1:]):
             model_input = list(itertools.compress(model_inputs, bitmask_set))
-            self.store_model(name = prefix + bitmask_set_str, 
-                                model = get_model_callback(model_input), overwrite = True)
-
-    def load_model_powerset(self, prefix, num_elements):
+            MmVae.store_model(name = prefix + bitmask_set_str, 
+                                model = get_model_callback(model_input), overwrite = overwrite)
+    
+    @staticmethod
+    def load_model_powerset(prefix, num_elements):
         ''' Load models of a powerset model given the number of elements
         This function loads the models with the corresponding:
         e.g. load_model_powerset('enc_mean_xw_', num_elements = 2) loads the models:
         enc_mean_xw_10: Encoder as the first list element with bitmask 10
         enc_mean_xw_01: Encoder as the second list element with bitmask 01
         enc_mean_xw_11: Encoder as the third list element with bitmask 11
-
         returns list of loaded models and coresponding bitmask
         '''
-        encoder_powerset = []
+        model_powerset = []
         bitmask_powerset, bitmask_powerset_str = setfun.get_bitmask_powerset(num_elements)
         for bitmask_set, bitmask_set_str in zip(bitmask_powerset[1:], bitmask_powerset_str[1:]):
-            encoder_powerset.append(self.load_model(name = prefix + bitmask_set_str))
-        return encoder_powerset, bitmask_powerset
+            model_powerset.append(MmVae.load_model(name = prefix + bitmask_set_str))
+        return model_powerset, bitmask_powerset
     
 class Warmup:
     '''The Warmup class for value definitions'''
