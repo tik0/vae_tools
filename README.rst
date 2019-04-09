@@ -7,3 +7,8 @@ Setup
 -----
 
 Add `PYTHONPATH=/local/path/to/this/repo` to your environment.
+
+Install
+-------
+
+python2.7 -m pip install -e setup.py
