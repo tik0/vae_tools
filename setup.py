@@ -17,7 +17,7 @@ setup(
     author_email='tkorthals@cit-ec.uni-bielefeld.de',
     url='https://github.com/tik0/vae_tools',
     license=license,
-    install_requires=['tensorflow-gpu>=1.12.0',
+    install_requires=['tensorflow>=1.12.0',
                       'tensorboard>=1.12.0',
                       'numpy>=1.16',
                       'Pillow>=5.3.0',
@@ -30,6 +30,6 @@ setup(
                       'pycurl>=7.43.0',
                       'requests>=2.18.4',
                       'scipy>=1.2.0',
-                      'keras>=2.2.4'],
+                      'Keras>=2.2.4'],
     packages=find_packages(exclude=('tests', 'docs'))
 )
