@@ -70,55 +70,102 @@ def image_channels(C, as_float = True, figsize=(5,5), dpi=96):
     ax3.set_title('B')
     plt.show()
 
-# Show image/lidar pais
-def image_lidar_pair(C, L_dist, L_angle, figsize=(5,5), dpi=96):
-    fig, (ax, ax2) = plt.subplots(ncols=2, figsize=figsize, dpi=dpi)
-    ax.imshow(C)
-    ax.set_title('Image')
-    ax2.plot(L_angle, L_dist, 'b.-')
-    ax2.set_title('LiDAR')
-    ax2.set_xlabel('angle (°)')
-    ax2.set_ylabel('distance (m)')
-    # set the aspect ratio
-    asp = np.diff(ax2.get_xlim())[0] / np.diff(ax2.get_ylim())[0]
-    ax2.set_aspect(asp)
-    plt.show()
+# Show image/lidar pairs
+def image_lidar_pair(C, L_dist, L_angle, figsize=(5,5), dpi=96, title_C = 'Image', title_L = 'LiDAR', xlabel_L = 'angle (°)', ylabel_L = 'distance (m)'):
+    if type(C) is list and type(L_dist) is list:
+        if len(C) is not len(L_dist):
+            raise ValueError('len(C) is not len(L)')
+        num_fig = len(C)
+        if type(L_angle) is not list: # duplicate the angles if onl yone was given
+            L_angle = [L_angle for _ in range(num_fig)]
+        fig, axs = plt.subplots(nrows=2, ncols=num_fig, figsize=figsize, dpi=dpi)
+        ax_c, ax_l = axs[0,:], axs[1,:]
+        # Images
+        for ax, c in zip(ax_c, C):
+            ax.imshow(c)
+        ax_c[0].set_ylabel(title_C)
+        # LiDAR
+        for ax, l_dist, l_angle in zip(ax_l, L_dist, L_angle):
+            ax.plot(l_angle, l_dist, 'b.-')
+            # set the aspect ratio
+            asp = np.diff(ax.get_xlim())[0] / np.diff(ax.get_ylim())[0]
+            ax.set_aspect(asp)
+        ax_l[0].set_ylabel(title_L)
+        for ax in axs.flatten():
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            ax.axis('off')
+        plt.subplots_adjust(wspace=0, hspace=0)
+        plt.show()
+    else:
+        fig, axs = plt.subplots(ncols=2, figsize=figsize, dpi=dpi)
+        ax, ax2 = axs[0], axs[1]
+        ax.imshow(C)
+        ax.set_title(title_C)
+        ax2.plot(L_angle, L_dist, 'b.-')
+        ax2.set_title(title_L)
+        ax2.set_xlabel(xlabel_L)
+        ax2.set_ylabel(ylabel_L)
+        # set the aspect ratio
+        asp = np.diff(ax2.get_xlim())[0] / np.diff(ax2.get_ylim())[0]
+        ax2.set_aspect(asp)
+        plt.show()
+    return fig, axs
 
-def get_image_dec_enc_samples_2(grid_x, grid_y, encoder_mean, encoder_log_var, decoder, Dz, image_size):
+def get_image_dec_enc_samples_2(grid_x, grid_y, encoder_mean, encoder_log_var, decoder, Dz, image_rows_cols_chns):
+    '''Showing decoding and statistics for latent vectors, assuming the decoding stage outputs values as [0., 1.] '''
     nx = grid_x.shape[0]
     ny = grid_y.shape[0]
-    image_width = image_size[0]
-    image_height = image_size[1]
-    image_depth = image_size[2]
+    image_height = image_rows_cols_chns[0]
+    image_width = image_rows_cols_chns[1]
+    image_depth = image_rows_cols_chns[2]
     if image_depth == 1:
         figure = np.zeros((image_height * ny, image_width * nx, 1), dtype='uint8')
     else:
         figure = np.zeros((image_height * ny, image_width * nx, 3), dtype='uint8')
-    z_reencoded_mean = np.zeros(shape=(ny,nx,Dz))
-    z_reencoded_std = np.zeros(shape=(ny,nx))
+    z_reencoded_mean = np.zeros(shape=(ny,nx,Dz)) # (rows = ny, cols = nx) for later image
+    z_reencoded_std = np.zeros(shape=(ny,nx)) # (rows = ny, cols = nx) for later image
+    # Sanity check, if we can reshape the output into the given image format. Otherwise, truncate!
+    num_val_image = np.prod(image_rows_cols_chns)
+    num_val_decoder = np.prod(decoder.get_layer(index=-1).output_shape[1:])
+    if num_val_image != num_val_decoder:
+        warnings.warn("Output of decoder is not reshapable into size image_rows_cols_chns (num_val_image=" + str(num_val_image) + " != num_val_decoder=" + str(num_val_decoder) + "). Will truncate values.")
+        def reshape(img):
+            return img[:num_val_image].reshape(image_height, image_width, image_depth)
+    else:
+        def reshape(img):
+            return img.reshape(image_height, image_width, image_depth)
     # Sample  from the latent space
-    for i, yi in enumerate(grid_x):
-        for j, xi in enumerate(grid_y):
+    for i, yi in enumerate(grid_y):
+        for j, xi in enumerate(grid_x):
             z_sample = np.array([[xi, yi]])
-            x_decoded = decoder.predict(z_sample)
-            z_reencoded_mean[i,j,:] = encoder_mean.predict(x_decoded)
-            z_reencoded_std[i,j] = np.sum(np.exp(encoder_log_var.predict(x_decoded) / 2.0))
-            x_decoded_reshaped = x_decoded[0].reshape(image_width, image_height, image_depth)
+            # Decode the latent vector
+            x_decoded = decoder.predict(z_sample, batch_size = 1)
+            # Reencode the decoding to get proper statistics for the latent vector
+            z_reencoded_mean[i,j,:] = encoder_mean.predict(x_decoded, batch_size = 1)
+            z_reencoded_std[i,j] = np.sum(np.exp(encoder_log_var.predict(x_decoded, batch_size = 1) / 2.0))
+            # Get the image and convert it from [0., 1.] to [0 .. 255]
+            #x_decoded_reshaped = x_decoded[0].reshape(image_width, image_height, image_depth)
+            x_decoded_reshaped = reshape(x_decoded[0])
             if image_depth == 1 or image_depth == 3:
-                digit = 255. - x_decoded_reshaped * 255.
+                #digit = 255. - x_decoded_reshaped * 255.
+                digit = x_decoded_reshaped * 255.
             elif image_depth == 2:
-                digit = 255. - np.concatenate((x_decoded_reshaped, np.ones((image_width,image_height,1))), axis=2) * 255.
+                #digit = 255. - np.concatenate((x_decoded_reshaped, np.ones((image_width,image_height,1))), axis=2) * 255.
+                digit = np.concatenate((x_decoded_reshaped, np.ones((image_width,image_height,1))), axis=2) * 255.
             else:
                 assert False, "Cannot handle image depth!"
-            i_corrected = nx-1-i
-            figure[i_corrected * image_height: (i_corrected + 1) * image_height,
+            i_reversed = ny - i - 1
+            figure[i_reversed * image_height: (i_reversed + 1) * image_height,
                 j * image_width: (j + 1) * image_width] = digit.astype('uint8')
     return figure, z_reencoded_mean, z_reencoded_std
 
-def get_image_dec_enc_samples(grid_x, grid_y, model_obj, image_size):
+def get_image_dec_enc_samples(grid_x, grid_y, model_obj, image_rows_cols_chns):
+    '''Showing decoding and statistics for latent vectors, assuming the decoding stage outputs values as [0., 1.] '''
     # grid_x: latent grid vector in x direction
     # grid_y: latent grid vector in y direction
-    # image_size: The image dimensions from the decoder
+    # model_obj: the MMVAE object
+    # image_rows_cols_chns: The image dimensions from the decoder
     warnings.warn("deprecated, there might be a generic function for calculating the latent statistics", DeprecationWarning)
 
     try:
@@ -132,7 +179,7 @@ def get_image_dec_enc_samples(grid_x, grid_y, model_obj, image_size):
         Dz = model_obj.z_dim
     except: # Backward compatibility
         Dz = model_obj.latent_dim
-    return get_image_dec_enc_samples_2(grid_x, grid_y, encoder_mean, encoder_log_var, decoder, Dz, image_size)
+    return get_image_dec_enc_samples_2(grid_x, grid_y, encoder_mean, encoder_log_var, decoder, Dz, image_rows_cols_chns)
 
 def random_images_from_set(X_set, image_rows_cols_chns, n):
     # n(int): how many samples are shown (it is actually nxn)
@@ -164,10 +211,12 @@ def scatter_encoder_2(X, label, grid_x, grid_y, encoder_mean, batch_size = 128, 
     ny = grid_y.shape[0]
     Z = encoder_mean.predict(X, batch_size=batch_size)
     fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=figsize, dpi=dpi)
-    ax1.scatter(Z[:, 0], Z[:, 1], c=label)
+    ax1.scatter(x = Z[:, 0], y = Z[:, 1], c=label)
     ax1.set_aspect("equal")
-    ax2.scatter(Z[:, 0], Z[:, 1])
-    ax2.scatter(np.flipud(np.matlib.repmat(grid_x,nx,1)), np.flipud(np.matlib.repmat(grid_y,ny,1).transpose()), c='r', marker='.')
+    ax2.scatter(x = Z[:, 0], y = Z[:, 1])
+    # Show the sample points in latent space to indicate where we actually sample from
+    xx, yy = np.meshgrid(grid_x, grid_y, sparse=False)
+    ax2.scatter(x = xx.flatten(), y = yy.flatten(), c='r', marker='.')
     ax2.set_aspect("equal")
     plt.show()
 
@@ -179,7 +228,7 @@ def scatter_encoder(X, label, grid_x, grid_y, model_obj, batch_size = 128, figsi
     try:
         encoder_mean = model_obj.get_encoder_mean([model_obj.encoder[0][0]])
     except: # Backward compatibility
-        encoder_mean = model_obj.get_encoder_mean([model_obj.encoder[0][0]])
+        pass # todo
     scatter_encoder_2(X, label, grid_x, grid_y, encoder_mean, batch_size = batch_size, figsize=figsize, dpi = dpi)
 
 def lidar_in_out_2(X_set, num_subplots, encoder_mean, decoder, title = "In- (blue) vs Output (red)"):
@@ -369,7 +418,8 @@ def plot_losses(losses, plot_elbo = True, figsize=[10,5], dpi=96):
     return the figure handle
     '''
     num_plots = len(list(losses.history.values())) + int(plot_elbo)
-    f, axs = plt.subplots(num_plots, 1, sharex=True, figsize=[10,5], dpi=96)
+    f, axs = plt.subplots(num_plots, 1, sharex=True, figsize=figsize, dpi=dpi)
+    f.tight_layout()
     for idx in range(len(axs)-int(plot_elbo)):
         axs[idx].plot(list(losses.history.values())[idx])
         axs[idx].set_xlabel(list(losses.history.keys())[idx])
