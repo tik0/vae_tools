@@ -399,20 +399,23 @@ class MmVae(GenericVae, sampling.Sampling):
         # Calculate entropy losses for all sets in the powerset
         reconstruction_loss = []
         # Traverse the sets of the powerset
-        for x_set, x_decoded_mean_set, encoder_inputs_dim, reconstruction_loss_metrics in \
+        for x_set, x_decoded_mean_set, encoder_inputs_dim, reconstruction_loss_metrics, idx_set in \
                                                              zip(self.encoder_inputs_powerset, \
                                                                  self.decoder_outputs_powerset, \
                                                                  self.encoder_inputs_dim_powerset, \
-                                                                 self.reconstruction_loss_metrics_powerset):
+                                                                 self.reconstruction_loss_metrics_powerset, \
+                                                                 range(len(self.encoder_inputs_powerset))):
             reconstruction_loss_set = [] # Holds the loss for the whole powerset
             # Traverse the elements per set
-            for x, x_decoded_mean, encoder_input_dim, reconstruction_loss_metric in zip(x_set, \
+            for x, x_decoded_mean, encoder_input_dim, reconstruction_loss_metric, idx_input in zip(x_set, \
                                                                                         x_decoded_mean_set, \
                                                                                         encoder_inputs_dim, \
-                                                                                        reconstruction_loss_metrics):
+                                                                                        reconstruction_loss_metrics, \
+                                                                                        range(len(x_set))):
 
                 # Choose the proper reconstruction loss metric
-                loss_layer = self._get_reconstruction_loss(reconstruction_loss_metric, weight = encoder_input_dim)
+                loss_layer = self._get_reconstruction_loss(reconstruction_loss_metric, weight = encoder_input_dim,
+                                                           name="loss_reconstruction_" + str(idx_set) + "_" + str(idx_input))
                 self.loss_layers.append(loss_layer) # Backup the layer for callbacks, etc.
                 loss = loss_layer([x, x_decoded_mean])
                 reconstruction_loss_set.append(loss)
@@ -420,9 +423,9 @@ class MmVae(GenericVae, sampling.Sampling):
         
         # Calculate the prior losses for all sets in the powerset
         kl_prior_loss = []
-        for z_mean, z_logvar, inputs, encoder_inputs_dim in zip(self.Z_mean, self.Z_logvar,
+        for z_mean, z_logvar, idx_set, inputs, encoder_inputs_dim in zip(self.Z_mean, self.Z_logvar, range(len(self.encoder_powerset)),
                                                                 self.encoder_powerset, self.encoder_inputs_dim_powerset):
-            loss_layer = LosslayerDistributionGaussianPrior(weight=self.get_beta(x_dim = sum(encoder_inputs_dim)))
+            loss_layer = LosslayerDistributionGaussianPrior(weight=self.get_beta(x_dim = sum(encoder_inputs_dim)), name="loss_prior_" + str(idx_set))
             self.loss_layers.append(loss_layer) # Backup the layer for callbacks, etc.
             loss = loss_layer([z_mean, z_logvar])
             kl_prior_loss.append(loss)
@@ -431,8 +434,8 @@ class MmVae(GenericVae, sampling.Sampling):
         # where |A|=|B|-1 and A is a proper subset of B (which is always valid for only one pair of sets)
         kl_mutual_loss = []
         subset_idx, superset_idx = setfun.find_proper_subsets(self.encoder_inputs_powerset, cardinality_difference = 1, debug = False)
-        for A_idx, B_idx in zip(subset_idx, superset_idx):
-            loss_layer = LosslayerDistributionGaussianMutual(weight=self.beta_mutual)
+        for A_idx, B_idx, idx_mutual in zip(subset_idx, superset_idx, range(len(superset_idx))):
+            loss_layer = LosslayerDistributionGaussianMutual(weight=self.beta_mutual, name = "loss_mutual_" + str(idx_mutual))
             self.loss_layers.append(loss_layer) # Backup the layer for callbacks, etc.
             loss = loss_layer([self.Z_mean[B_idx], self.Z_mean[A_idx], self.Z_logvar[B_idx], self.Z_logvar[A_idx]])
             kl_mutual_loss.append(loss)
@@ -482,10 +485,11 @@ class MmVae(GenericVae, sampling.Sampling):
             decoder = self.decoder
         else: # Compare all decoder outputs with the desired outputs and store the net
             decoder = []
-            for decoder_net in self.decoder:
-                for decoder_output in decoder_output_list:
+            for decoder_output in decoder_output_list:
+                for decoder_net in self.decoder:
                     if decoder_net[-1] == decoder_output:
                         decoder.append(decoder_net)
+                        break
         # Build the final decoder model
         for current_decoder in decoder:
             decoder_outputs.append(current_decoder[0](latent_input))
