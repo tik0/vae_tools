@@ -273,8 +273,85 @@ def lidar_camera_set(lidar_degree_around_center = 80., image_target_rows_cols_ch
     # folder = glob('2018-06-02/cyl_r*/') + glob('2018-06-02/box_r*/');
     # folder = glob('2018-06-05/cyl_r*/') + glob('2018-06-05/box_r*/') + glob('2018-06-05/cyl_g*/');
     folder = ('../../mVAE/2018-06-05/cyl_r*/', '../../mVAE/2018-06-05/box_r*/', '../../mVAE/2018-06-05/cyl_g*/');
-    X_l, X_c, X_set_label_idx, X_set_label_str = loader.camera_lidar("./Xl-80deg_Xc-64-64-2", folder, 
+    X_l, X_c, X_set_label_idx, X_set_label_str = vae_tools.loader.camera_lidar("./Xl-80deg_Xc-64-64-2", folder, 
                         "_amiro1_sync_front_camera_image_raw-X-pixeldata.npz", 
                         "_amiro1_sync_laser_scan-X-ranges_intensities_angles.npz", 
                         measurements_per_file, old_shape, new_shape, 683, steps_around_center, 5., overwrite = False)
     return X_l, X_c, X_set_label_idx, X_set_label_str
+
+def didactical_set(normalize_min_max = True, normalize_mean_var = False, noise_amp_x = 0.06, noise_amp_w = 0.1):
+    ''' Load the didactical set as discribed in IEEE FUSION2019 Jointly Trained Variational Autoencoder for Multi-Modal Sensor Fusion Fig. 3a 
+    normalize_min_max    : 0 to 1 normalization
+    normalize_mean_var   : Normalize mean and variance
+    noise_amp_x          : Attribute for noise in modality x
+    noise_amp_w          : Attribute for noise in modality w
+    '''
+    _, gt_set, _, _ = loader.mnist()
+    size = len(gt_set)
+    num_mnist_class = 10
+    label_pose_rad = np.linspace(0, 2*np.pi, num=num_mnist_class, endpoint=True, dtype=float) # collapse first and last mean
+    label_pose_lin_x_2 = np.linspace(.25, .75, num=2, endpoint=True, dtype=float)
+    label_pose_lin_x_3 = np.linspace(0, 1., num=3, endpoint=True, dtype=float)
+    label_pose_lin_y = np.linspace(0, 1., num=4, endpoint=True, dtype=float)
+    x_set = np.zeros((size,2))
+    w_set = np.zeros(x_set.shape)
+    for idx in np.arange(num_mnist_class):
+        mask = gt_set == idx
+        w_set[mask,0] = np.cos(label_pose_rad[idx])
+        w_set[mask,1] = np.sin(label_pose_rad[idx])
+
+    #x_set[gt_set == 0,:] = [label_pose_lin_y[0], label_pose_lin_x_3[0]]
+    x_set[gt_set == 1,:] = [label_pose_lin_y[0], label_pose_lin_x_3[1]]
+    x_set[gt_set == 2,:] = [label_pose_lin_y[0], label_pose_lin_x_3[2]]
+    x_set[gt_set == 3,:] = [label_pose_lin_y[1], label_pose_lin_x_2[0]]
+    x_set[gt_set == 4,:] = [label_pose_lin_y[1], label_pose_lin_x_2[1]]
+    #x_set[gt_set == 5,:] = [label_pose_lin_y[2], label_pose_lin_x_3[0]]
+    #x_set[gt_set == 6,:] = [label_pose_lin_y[2], label_pose_lin_x_3[1]]
+    #x_set[gt_set == 7,:] = [label_pose_lin_y[2], label_pose_lin_x_3[2]]
+    x_set[gt_set == 5,:] = [label_pose_lin_y[2], label_pose_lin_x_3[1]] # collapse
+    x_set[gt_set == 6,:] = [label_pose_lin_y[2], label_pose_lin_x_3[1]] # collapse
+    x_set[gt_set == 7,:] = [label_pose_lin_y[2], label_pose_lin_x_3[1]] # collapse
+    x_set[gt_set == 8,:] = [label_pose_lin_y[3], label_pose_lin_x_2[0]]
+    x_set[gt_set == 0,:] = [label_pose_lin_y[3], label_pose_lin_x_2[0]] # collapse
+    x_set[gt_set == 9,:] = [label_pose_lin_y[3], label_pose_lin_x_2[1]]   
+    # Add some Gaussion noise
+    w_set = w_set + noise_amp_w * np.random.randn(w_set.shape[0], w_set.shape[1])
+    x_set = x_set + noise_amp_x * np.random.randn(x_set.shape[0], x_set.shape[1])
+
+    if normalize_min_max:
+        x_set[:,0] = x_set[:,0] - np.amin(x_set[:,0])
+        x_set[:,1] = x_set[:,1] - np.amin(x_set[:,1])
+        x_set[:,0] = x_set[:,0] / np.amax(x_set[:,0])
+        x_set[:,1] = x_set[:,1] / np.amax(x_set[:,1])
+        w_set[:,0] = w_set[:,0] - np.amin(w_set[:,0])
+        w_set[:,1] = w_set[:,1] - np.amin(w_set[:,1])
+        w_set[:,0] = w_set[:,0] / np.amax(w_set[:,0])
+        w_set[:,1] = w_set[:,1] / np.amax(w_set[:,1])
+    if normalize_mean_var:
+        x_set[:,0] = x_set[:,0] - np.mean(x_set[:,0])
+        x_set[:,1] = x_set[:,1] - np.mean(x_set[:,1])
+        x_set[:,0] = x_set[:,0] / np.var(x_set[:,0])
+        x_set[:,1] = x_set[:,1] / np.var(x_set[:,1])
+        w_set[:,0] = w_set[:,0] - np.mean(w_set[:,0])
+        w_set[:,1] = w_set[:,1] - np.mean(w_set[:,1])
+        w_set[:,0] = w_set[:,0] / np.var(w_set[:,0])
+        w_set[:,1] = w_set[:,1] / np.var(w_set[:,1])
+
+    # Shuffel and define training and test sets
+    shuffel_index = np.arange(size)
+    random.shuffle(shuffel_index)
+    w_set_shuffel = np.copy(w_set[shuffel_index,:])
+    x_set_shuffel = np.copy(x_set[shuffel_index,:])
+    gt_set_shuffel = np.copy(gt_set[shuffel_index])
+    train_size = np.int(len(w_set) * 0.99)
+    w_train = w_set_shuffel[:train_size,:]
+    w_test = w_set_shuffel[train_size:,:]
+    x_train = x_set_shuffel[:train_size,:]
+    x_test = x_set_shuffel[train_size:,:]
+    gt_train = gt_set_shuffel[:train_size]
+    gt_test = gt_set_shuffel[train_size:]
+
+    x_train_shared = x_train
+    w_train_shared = w_train
+
+    return x_train, w_train, gt_train, x_test, w_test, gt_test
