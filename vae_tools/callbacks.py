@@ -56,21 +56,33 @@ class TbLosses(keras.callbacks.Callback):
 
 class Losses(keras.callbacks.Callback):
     '''Create a history which stores the ouputs of the loss layer after every epoch'''
-    def __init__(self, data):
+    def __init__(self, data, only_train_end = False):
         self.data = data
         self.history = {}
         self.epoch = []
+        self.only_train_end = only_train_end
 
     def on_train_begin(self, logs=None):
         return
  
     def on_train_end(self, logs=None):
-        return
+        if self.only_train_end:
+            self.store_losses(0, logs=logs)
  
     def on_epoch_begin(self, epoch, logs=None):
         return
  
     def on_epoch_end(self, epoch, logs=None):
+        if not self.only_train_end:
+            self.store_losses(epoch, logs=logs)
+ 
+    def on_batch_begin(self, batch, logs=None):
+        return
+ 
+    def on_batch_end(self, batch, logs=None):
+        return
+    
+    def store_losses(self, epoch, logs=None):
         logs = logs or {}
         self.epoch.append(epoch)
         # Get the output layer names (we only have loss layers as output)
@@ -80,13 +92,6 @@ class Losses(keras.callbacks.Callback):
         # Store it to the history
         for k, v in zip(output_layer_names, output_layer_values):
             self.history.setdefault(k, []).append(v)
-        return
- 
-    def on_batch_begin(self, batch, logs=None):
-        return
- 
-    def on_batch_end(self, batch, logs=None):
-        return
     
 
 def get_tf_summary_image(tag, plot_buf):
