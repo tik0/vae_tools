@@ -182,12 +182,12 @@ class TbEmbedding(keras.callbacks.Callback):
             data_embedded = np.array(encoder_model.predict(data))
             latent_dim = data_embedded.shape[1]
             if latent_dim == 2: # Display the VAE embedding
-                f = vae_tools.viz.plot_embedding(embeddings = data_embedded, labels = self.labels,
+                f, ax = vae_tools.viz.plot_embedding(embeddings = data_embedded, labels = self.labels,
                                images = self.images, figsize=(10,10), dpi=155)
             else: # Display the tSNE embedding
                 tsne = manifold.TSNE(n_components=2, init='pca', random_state=0, n_iter = 250, perplexity = self.perplexity)
                 X_tsne = tsne.fit_transform(data_embedded)
-                f = vae_tools.viz.plot_embedding(embeddings = X_tsne, labels = self.labels, images = self.images,
+                f, ax = vae_tools.viz.plot_embedding(embeddings = X_tsne, labels = self.labels, images = self.images,
                                figsize=(10,10), dpi=155)
             # Get the buffer
             buf = io.BytesIO()

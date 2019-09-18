@@ -374,12 +374,13 @@ class MmVae(GenericVae, sampling.Sampling):
                 encoder_outputs_powerset.append(element_output[0])
 
         # Add sampling for every permutation
+        # TODO allow external definition of sampling layers (e.g. with pretrained weights)
         self.Z = []
         self.Z_mean = []
         self.Z_logvar = []
-        for encoder_output in encoder_outputs_powerset:
-            self.Z_mean.append(Dense(self.z_dim)(encoder_output))
-            self.Z_logvar.append(Dense(self.z_dim)(encoder_output))
+        for encoder_output, idx_set in zip(encoder_outputs_powerset, range(len(self.encoder_inputs_powerset))):
+            self.Z_mean.append(Dense(self.z_dim, name="mean_" + str(idx_set))(encoder_output))
+            self.Z_logvar.append(Dense(self.z_dim, name="logvar_" + str(idx_set))(encoder_output))
             self.Z.append(self.sampling_layer([self.Z_mean[-1], self.Z_logvar[-1]]))
             
         # Add a decoder output for every permutation

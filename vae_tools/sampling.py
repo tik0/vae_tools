@@ -8,9 +8,12 @@ import random
 
 def set_seed(seed = 0):
     # Set random seeds (https://machinelearningmastery.com/reproducible-results-neural-networks-keras/)
-    numpy.random.seed(0)
-    tensorflow.set_random_seed(0)
-    random.seed(0)
+    numpy.random.seed(seed)
+    try:
+        tensorflow.compat.v1.set_random_seed(seed)
+    except: # backwards compat
+        tensorflow.set_random_seed(seed)
+    random.seed(seed)
 
 class Sampling():
     def __init__(self, z_dim):

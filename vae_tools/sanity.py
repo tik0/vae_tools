@@ -13,9 +13,12 @@ def check():
     print("python version: ", platform.python_version())
     print("keras version: " + str(keras.__version__))
     try:
-        print("tensorflow version: " + str(tensorflow.VERSION))
+        print("tensorflow version: " + str(tensorflow.version.VERSION))
     except:
-        pass
+        try: # backwards compat
+            print("tensorflow version: " + str(tensorflow.VERSION))
+        except:
+            pass
     print("matplotlib uses: ", matplotlib.rcParams['backend']) 
     try: # keras was loaded
         avail_gpus = K.tensorflow_backend._get_available_gpus()
