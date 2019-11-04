@@ -343,7 +343,7 @@ class LosslayerReconstructionMSE(LosslayerReconstruction):
     def metric(self, inputs):
         '''We assume always a single input and ouput'''
         x = K.flatten(inputs[0])  # Inputs
-        x_decoded_mean = K.flatten(inputs[1])  # Output
+        x_decoded = K.flatten(inputs[1])  # Output
         # print("K.get_value(self.weight): ", K.get_value(self.weight))
         return K.sum(self.weight * metrics.mean_squared_error(x, x_decoded))
 
@@ -357,6 +357,6 @@ class LosslayerReconstructionBCE(LosslayerReconstruction):
     def metric(self, inputs):
         '''We assume always a single input and ouput'''
         x = K.flatten(inputs[0])  # Inputs
-        x_decoded_mean = K.flatten(inputs[1])  # Output
+        x_decoded = K.flatten(inputs[1])  # Output
         # print("K.get_value(self.weight): ", K.get_value(self.weight))
         return K.sum(self.weight * metrics.binary_crossentropy(x, x_decoded))
