@@ -4,8 +4,8 @@ try:
     import tensorflow
 except:
     print("tensorflow module is not available")
-import keras
-from keras import backend as K
+from tensorflow import keras
+from tensorflow.keras import backend as K
 import matplotlib
 import platform
 
@@ -28,4 +28,3 @@ def check():
         print('No GPUs available')
     else:
         print("Available GPUs " + str(avail_gpus))
-    

@@ -1,14 +1,13 @@
 #!/usr/bin/python
 
 import tensorflow as tf
-import keras
+from tensorflow import keras
 import numpy as np
-from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
-from keras.layers import Conv2D, Conv2DTranspose
-from keras.models import Model
-from keras import backend as K
-from keras import metrics
-# import keras
+from tensorflow.keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose
+from tensorflow.keras.models import Model
+from tensorflow.keras import backend as K
+from tensorflow.keras import metrics
 
 # KL-divergence between two Gaussian
 def kl_loss(mean1, mean2, log_var1, log_var2):

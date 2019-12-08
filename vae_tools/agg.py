@@ -12,7 +12,7 @@ def set_agg(force = False):
     except:
         pass
 
-def check_backends()
+def check_backends():
     ''' Check all available backends
     Ref.: https://stackoverflow.com/a/43015816/2084944
     '''

@@ -1,4 +1,4 @@
-import keras
+from tensorflow import keras
 import numpy as np
 
 def set_layerweights_trainable(model, ln_full = None, ln_start = None, ln_any = None, trainable = False):

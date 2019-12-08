@@ -2,17 +2,14 @@ from enum import Enum
 import sys, os
 import itertools
 import tensorflow as tf
-from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
+from tensorflow import keras
+from tensorflow.keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
 from vae_tools import sampling, setfun, custom_variational_layer
-from keras import metrics
-from keras import backend as K
-from keras.models import Model
-from keras.models import model_from_json
-
-try:
-    from keras.layers.merge import concatenate as concat
-except:
-    from tensorflow.python.keras.layers.merge import concatenate as concat
+from tensorflow.keras import metrics
+from tensorflow.keras import backend as K
+from tensorflow.keras.models import Model
+from tensorflow.keras.models import model_from_json
+from tensorflow.keras.layers import concatenate as concat
 
 
 class ReconstructionLoss():
@@ -48,6 +45,9 @@ class GenericVae():
                         where d_m is a list having of L* layers: [l_1, l_2, ..., l_L]
         encoder_inputs  List of encoder inputs [l_1_e_1, l_1_e_2, ..., l_1_e_M]
         decoder_outputs List of decoder outputs [l_L_d_1, l_L_d_2, ..., l_L_d_M]
+        encoder_inputs_ref  List of encoder inputs references [r_1_e_1, r_1_e_2, ..., r_1_e_M]
+        decoder_outputs_ref List of decoder outputs references [r_L_d_1, r_L_d_2, ..., r_L_d_M]
+
     """
 
     def __init__(self, z_dim, encoder, decoder, encoder_inputs_dim, name='GenericVae',
@@ -79,7 +79,9 @@ class GenericVae():
         self.reconstruction_loss_metrics = reconstruction_loss_metrics
         # Build corresponding powersets
         self.encoder_inputs = [encoder[0] for encoder in self.encoder]
+        self.encoder_inputs_ref = [t.experimental_ref() for t in self.encoder_inputs]
         self.decoder_outputs = [decoder[-1] for decoder in self.decoder]
+        # self.decoder_outputs_ref = [t.experimental_ref() for t in self.decoder_outputs]
         self.encoder_powerset = setfun.powerset(self.encoder)
         self.decoder_powerset = setfun.powerset(self.decoder)
         self.decoder_outputs = [decoder[-1] for decoder in self.decoder]
@@ -232,7 +234,7 @@ class LatentEncoder():
         self.activations = activations
 
 
-from keras.callbacks import LambdaCallback
+from tensorflow.keras.callbacks import LambdaCallback
 
 
 class Losslayer(Layer):

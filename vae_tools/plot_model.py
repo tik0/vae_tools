@@ -1,13 +1,10 @@
 import os
-import keras
+from tensorflow import keras
 from PIL import Image                                                                                
 from random import randint
 from IPython.display import SVG
 from IPython.display import display
-try:
-    from keras.utils.vis_utils import model_to_dot
-except:
-    from tensorflow.python.keras.utils.vis_utils import model_to_dot
+from tensorflow.keras.utils import model_to_dot
 import warnings
 warnings.warn("deprecated, use viz.plot_model", DeprecationWarning)
 

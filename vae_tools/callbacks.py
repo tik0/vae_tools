@@ -1,5 +1,5 @@
 import tensorflow as tf
-import keras
+from tensorflow import keras
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt

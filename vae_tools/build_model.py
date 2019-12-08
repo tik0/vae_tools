@@ -2,21 +2,15 @@
 
 import numpy as np
 import os.path
-try: # keras
-    from keras.utils.vis_utils import model_to_dot
-except: # tf.keras
-    from keras.utils import model_to_dot
-try: # keras
-    from keras.layers.merge import concatenate as concat
-except: # tf.keras
-    from keras.layers import concatenate as concat
-from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
-from keras.layers import Conv1D, Conv2D, Conv2DTranspose
-from keras.models import Model
-from keras import backend as K
-from keras import metrics
-from keras.models import model_from_json
-import keras
+from tensorflow import keras
+from tensorflow.keras.utils import model_to_dot
+from tensorflow.keras.layers import concatenate as concat
+from tensorflow.keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
+from tensorflow.keras.layers import Conv1D, Conv2D, Conv2DTranspose
+from tensorflow.keras.models import Model
+from tensorflow.keras import backend as K
+from tensorflow.keras import metrics
+from tensorflow.keras.models import model_from_json
 from . import custom_variational_layer, sampling, layers
 
 import warnings

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-from keras import backend as K
+from tensorflow import keras
+from tensorflow.keras import backend as K
 import numpy.random
 import tensorflow
 import random

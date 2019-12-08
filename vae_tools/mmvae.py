@@ -2,16 +2,14 @@ from enum import Enum
 import sys, os
 import itertools
 import tensorflow as tf
-from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
+from tensorflow import keras
+from tensorflow.keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
 from vae_tools import sampling, setfun, custom_variational_layer
-from keras import metrics
-from keras import backend as K
-from keras.models import Model
-from keras.models import model_from_json
-try: # keras
-    from keras.layers.merge import concatenate as concat
-except: # tf.keras
-    from keras.layers import concatenate as concat
+from tensorflow.keras import metrics
+from tensorflow.keras import backend as K
+from tensorflow.keras.models import Model
+from tensorflow.keras.models import model_from_json
+from tensorflow.keras.layers import concatenate as concat
 
 from vae_tools.vae import *
 
@@ -157,25 +155,27 @@ class MmVae(GenericVae, sampling.Sampling):
         '''Returns the callback functions for warmup for now'''
         return [cb for cb in self.loss_layers.get_cb_warmup()]
     
-    def get_model(self, get_new_model = False):
+    def get_model(self, get_new_model = False, extra_inputs = []):
         #print("\n ------------------------ \n")
         #print("self.encoder_inputs", self.encoder_inputs)
         #print("self.y", self.y)
         if 'model' not in dir(self) or get_new_model:
-            self.model = Model(inputs = self.encoder_inputs, outputs = self.y)
+            self.model = Model(inputs = self.encoder_inputs + extra_inputs, outputs = self.y)
         return self.model
     
-    def get_encoder_mean(self, encoder_input_list):
-        set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list),
-                                                 setfun.powerset(self.encoder_inputs, sets_as_set = True))
-        return Model(self.encoder_inputs_powerset[set_idx], self.Z_mean[set_idx])
+    def get_encoder_mean(self, encoder_input_list, extra_inputs = []):
+        encoder_input_list_ref = [t.experimental_ref() for t in encoder_input_list]
+        set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list_ref),
+                                                 setfun.powerset(self.encoder_inputs_ref, sets_as_set = True))
+        return Model(self.encoder_inputs_powerset[set_idx] + extra_inputs, self.Z_mean[set_idx])
     
-    def get_encoder_logvar(self, encoder_input_list):
-        set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list),
-                                                 setfun.powerset(self.encoder_inputs, sets_as_set = True))
-        return Model(self.encoder_inputs_powerset[set_idx], self.Z_logvar[set_idx])
+    def get_encoder_logvar(self, encoder_input_list, extra_inputs = []):
+        encoder_input_list_ref = [t.experimental_ref() for t in encoder_input_list]
+        set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list_ref),
+                                                 setfun.powerset(self.encoder_inputs_ref, sets_as_set = True))
+        return Model(self.encoder_inputs_powerset[set_idx] + extra_inputs, self.Z_logvar[set_idx])
     
-    def get_decoder(self, latent_input = None, decoder_output_list = None):
+    def get_decoder(self, latent_input = None, decoder_output_list = None, extra_inputs = []):
         ''' Returns the decoder model
         latent_input               : Some own keras layers which should be used as input
         decoder_output_list  (list): List of decoder output layers for which the decoder should be build
@@ -199,9 +199,9 @@ class MmVae(GenericVae, sampling.Sampling):
             decoder_outputs.append(current_decoder[0](latent_input))
             for decoder_element in current_decoder[1:]:
                 decoder_outputs[-1] = decoder_element(decoder_outputs[-1])
-        return Model(latent_input, decoder_outputs)
+        return Model([latent_input] + extra_inputs, decoder_outputs)
     
-    def get_encoder_decoder(self, encoder_input_list):
+    def get_encoder_decoder(self, encoder_input_list, extra_inputs = []):
         '''ATTENTION: This model applies sampling in the hidden layer'''
         model_encoder_mean = self.get_encoder_mean(encoder_input_list)
         model_encoder_logvar = self.get_encoder_logvar(encoder_input_list)
@@ -211,7 +211,7 @@ class MmVae(GenericVae, sampling.Sampling):
         model_z = Model([input_encoder_mean, input_encoder_logvar], z)
         model_decoder = self.get_decoder()
         output = model_decoder(model_z([model_encoder_mean(encoder_input_list), model_encoder_logvar(encoder_input_list)]))
-        return Model(encoder_input_list, output)
+        return Model(encoder_input_list + extra_inputs, output)
         #set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list), setfun.powerset(self.encoder_inputs, sets_as_set = True))
         #print("self.encoder_inputs_powerset[set_idx]", self.encoder_inputs_powerset[set_idx])
         #print("self.decoder_outputs", self.decoder_outputs)

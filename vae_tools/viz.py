@@ -11,14 +11,11 @@ import warnings
 from PIL import Image
 import matplotlib
 from matplotlib import offsetbox
-import keras                                                                             
+from tensorflow import keras
 from random import randint
 from IPython.display import SVG
 from IPython.display import display
-try:
-    from keras.utils.vis_utils import model_to_dot
-except:
-    from tensorflow.python.keras.utils.vis_utils import model_to_dot
+from tensorflow.keras.utils import model_to_dot
 import vae_tools.mmvae, vae_tools.metrics
 
 def plot_model(model, file = None, folder = 'tmp', is_notebook = True, print_svg = False, verbose = True):

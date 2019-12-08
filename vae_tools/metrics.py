@@ -1,20 +1,13 @@
 #!/usr/bin/python
 
 import numpy as np
-
-import keras
-
-try:
-    from keras.utils.vis_utils import model_to_dot
-except:
-    from tensorflow.python.keras.utils.vis_utils import model_to_dot
-
-from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
-from keras.layers import Conv2D, Conv2DTranspose
-from keras.models import Model
-from keras import backend as K
-from keras import metrics
-import keras
+from tensorflow import keras
+from tensorflow.keras.utils import model_to_dot
+from tensorflow.keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose
+from tensorflow.keras.models import Model
+from tensorflow.keras import backend as K
+from tensorflow.keras import metrics
 import tensorflow as tf
 
 def kl_loss(mean1, mean2, log_var1, log_var2):
@@ -26,22 +19,32 @@ def kl_loss_n(mean, log_var):
     '''KL-divergence between an abitrary Gaussian and the normal distribution'''
     return kl_loss(mean, 0., log_var, 0.)
 
-def mean_squared_error(A, B):
+def mean_squared_error(A, B, mean = True):
     '''Returns the mean squared error between the datum A and B
     A & B   (np.array): One datum each
     
     returns the mean squared error
     '''
-    return ((A - B)**2.).flatten().mean()
+    r = (A - B)**2.
+    if mean:
+        r = r.flatten().mean()
+    return r
 
 
-def binary_cross_entropy(A, B):
+def binary_cross_entropy(A, B, clip = True, mean = True):
     '''Returns the binary cross entropy between the datum A and B
-    A & B   (np.array): One datum each
-    
+    A & B   (np.array): One datum each with A as ground-truth
+    clip: Clip the input array B
+    mean: return the mean value of the array
+
     returns the binary cross entropy
     '''
-    return (- (A * np.log(B) + (1.-A) * np.log(1.-B) )).flatten().sum()
+    if clip:
+        B = np.clip(B, tf.keras.backend.epsilon(), 1. - tf.keras.backend.epsilon())
+    r = - (A * np.log(B) + (1.-A) * np.log(1.-B) )
+    if mean:
+        r = r.flatten().mean()
+    return r
 
 # The elbo check
 def _elbo_check(decoder, encoder_mean, encoder_logvar, data, data_expected_output, sample_from_enc_dec = False, batch_size = 128, entropy = "mse"):
