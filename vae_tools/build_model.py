@@ -2,8 +2,14 @@
 
 import numpy as np
 import os.path
-from keras.utils.vis_utils import model_to_dot
-from keras.layers.merge import concatenate as concat
+try: # keras
+    from keras.utils.vis_utils import model_to_dot
+except: # tf.keras
+    from keras.utils import model_to_dot
+try: # keras
+    from keras.layers.merge import concatenate as concat
+except: # tf.keras
+    from keras.layers import concatenate as concat
 from keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
 from keras.layers import Conv1D, Conv2D, Conv2DTranspose
 from keras.models import Model

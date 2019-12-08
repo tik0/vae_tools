@@ -8,10 +8,10 @@ from keras import metrics
 from keras import backend as K
 from keras.models import Model
 from keras.models import model_from_json
-try:
+try: # keras
     from keras.layers.merge import concatenate as concat
-except:
-    from tensorflow.python.keras.layers.merge import concatenate as concat
+except: # tf.keras
+    from keras.layers import concatenate as concat
 
 from vae_tools.vae import *
 
