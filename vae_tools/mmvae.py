@@ -13,7 +13,7 @@ from tensorflow.keras.layers import concatenate as concat
 
 from vae_tools.vae import *
 
-class MmVae(GenericVae, sampling.Sampling):
+class MmVae(GenericVae):
 
     def __init__(self,
                  z_dim,
@@ -25,12 +25,16 @@ class MmVae(GenericVae, sampling.Sampling):
                  beta_mutual = 1.0,
                  reconstruction_loss_metrics = [ReconstructionLoss.MSE],
                  latent_encoder = None,
+                 sampling_obj = None,
                  name='MmVae'):
         super().__init__(z_dim=z_dim, encoder=encoder, decoder=decoder,name=name,
                          reconstruction_loss_metrics = reconstruction_loss_metrics,
                          beta = beta, beta_is_normalized = beta_is_normalized,
                          encoder_inputs_dim = encoder_inputs_dim)
-        self.sampling_layer = Lambda(self.randn, output_shape=(self.z_dim,), name='sample')
+        if sampling_obj is None: # Use standard sampling with linear mean and logvar layer
+            self.sampling_obj = sampling.RandN(self.z_dim)
+        else:
+            self.sampling_obj = sampling_obj
         self.beta_mutual = beta_mutual
         self.latent_encoder = latent_encoder
         self.y = self._configure()
@@ -61,14 +65,17 @@ class MmVae(GenericVae, sampling.Sampling):
 
         # Add sampling for every permutation
         # TODO allow external definition of sampling layers (e.g. with pretrained weights)
-        self.Z = []
-        self.Z_mean = []
-        self.Z_logvar = []
-        for encoder_output, idx_set in zip(encoder_outputs_powerset, range(len(self.encoder_inputs_powerset))):
-            self.Z_mean.append(Dense(self.z_dim, name="mean_" + str(idx_set))(encoder_output))
-            self.Z_logvar.append(Dense(self.z_dim, name="logvar_" + str(idx_set))(encoder_output))
-            self.Z.append(self.sampling_layer([self.Z_mean[-1], self.Z_logvar[-1]]))
-            
+        #self.Z = []
+        #self.Z_mean = []
+        #self.Z_logvar = []
+        #for encoder_output, idx_set in zip(encoder_outputs_powerset, range(len(self.encoder_inputs_powerset))):
+        #    self.Z_mean.append(Dense(self.z_dim, name="mean_" + str(idx_set))(encoder_output))
+        #    self.Z_logvar.append(Dense(self.z_dim, name="logvar_" + str(idx_set))(encoder_output))
+        #    self.Z.append(self.sampling_layer([self.Z_mean[-1], self.Z_logvar[-1]]))
+        self.Z, self.Z_layers_powerset = self.sampling_obj.get_sampling(encoder_outputs_powerset)
+        self.Z_mean = [layer["mean"] for layer in self.Z_layers_powerset]
+        self.Z_logvar = [layer["logvar"] for layer in self.Z_layers_powerset]
+
         # Add a decoder output for every permutation
         self.decoder_outputs_powerset = []
         for z, decoder_set in zip(self.Z, self.decoder_powerset):
