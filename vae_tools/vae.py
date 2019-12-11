@@ -173,7 +173,7 @@ class GenericVae():
         bitmask_powerset, bitmask_powerset_str = setfun.get_bitmask_powerset(num_elements=len(model_inputs))
         for bitmask_set, bitmask_set_str in zip(bitmask_powerset[1:], bitmask_powerset_str[1:]):
             model_input = list(itertools.compress(model_inputs, bitmask_set))
-            MmVae.store_model(name=prefix + bitmask_set_str,
+            GenericVae.store_model(name=prefix + bitmask_set_str,
                               model=get_model_callback(model_input), overwrite=overwrite)
 
     @staticmethod
@@ -185,12 +185,12 @@ class GenericVae():
         enc_mean_xw_01: Encoder as the second list element with bitmask 01
         enc_mean_xw_11: Encoder as the third list element with bitmask 11
 
-        returns list of loaded models and coresponding bitmask
+        returns list of loaded models and corresponding bitmask
         '''
         model_powerset = []
         bitmask_powerset, bitmask_powerset_str = setfun.get_bitmask_powerset(num_elements)
         for bitmask_set, bitmask_set_str in zip(bitmask_powerset[1:], bitmask_powerset_str[1:]):
-            model_powerset.append(MmVae.load_model(name=prefix + bitmask_set_str))
+            model_powerset.append(GenericVae.load_model(name=prefix + bitmask_set_str))
         return model_powerset, bitmask_powerset
 
     @staticmethod
@@ -247,9 +247,10 @@ class Losslayer(Layer):
         '''
         # self.weight = K.variable(value = weight if warmup is not None else warmup.v_init)
         self.weight = K.variable(value=kwargs.pop('weight', 1.0))
+        self.weight._trainable = False
         self.warmup = kwargs.pop('warmup', None)
         if self.warmup is not None:  # we use the values from warmup instead
-            K.set_value(self.weight, warmup.v_init)
+            K.set_value(self.weight, self.warmup.v_init)
         self.is_placeholder = True
         super().__init__(**kwargs)
 

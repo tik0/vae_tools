@@ -19,7 +19,7 @@ def kl_loss(mean1, mean2, log_var1, log_var2):
     return - .5 * (1 + log_var1 - log_var2 - ((K.exp(log_var1) + K.square(mean1 - mean2)) / K.exp(log_var2)))
 
 
-# KL-divergence between an abitrary Gaussian and the normal distribution
+# KL-divergence between an arbitrary Gaussian and the normal distribution
 def kl_loss_n(mean, log_var):
     '''kl_loss 
     Calculates D_KL(N(mean, sigma)||N(0, 1))
