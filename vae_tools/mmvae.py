@@ -168,6 +168,11 @@ class MmVae(GenericVae):
         #print("self.y", self.y)
         if 'model' not in dir(self) or get_new_model:
             self.model = Model(inputs = self.encoder_inputs + extra_inputs, outputs = self.y)
+        # add losses (i.e. output layers which name starts with 'loss_')
+        # we assume that they already emit a scalar value for each batch, thus, the aggregation does alter the value
+        for output in self.model.outputs:
+            if output.name.split(sep='/')[0][:5] == "loss_":
+                self.model.add_metric(output, name=output.name.split(sep='/')[0], aggregation="mean")
         return self.model
     
     def get_encoder_mean(self, encoder_input_list, extra_inputs = []):

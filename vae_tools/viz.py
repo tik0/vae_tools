@@ -405,24 +405,26 @@ def plot_embedding(embeddings, labels, images = None, image_distance_min = float
         plt.title(title)
     return figure, ax
 
-def plot_losses(losses, plot_elbo = True, figsize=[10,5], dpi=96):
+def plot_losses(losses, figsize_width=5., figsize_height_factor=0.325, dpi=150):
     ''' Plot all losses
-    losses     (obj): Object of the vae_tools.callbacks.Losses class
-    plot_elbo (bool): Sums all losses and shows them as ELBO
-    figsize   (list): The figure size
+    losses        (obj): Object of the vae_tools.callbacks.Losses class
+    figsize_width (float): Width of the figure
+    figsize_height_factor   (float): Factor for th efigure height
     dpi        (int): The plot's DPI
     
     return the figure handle
     '''
-    num_plots = len(list(losses.history.values())) + int(plot_elbo)
+
+    num_plots = len(list(losses.history.values()))
+    figsize_height = num_plots * figsize_width * figsize_height_factor
+    figsize = [figsize_width, figsize_height]
     f, axs = plt.subplots(num_plots, 1, sharex=True, figsize=figsize, dpi=dpi)
     f.tight_layout()
-    for idx in range(len(axs)-int(plot_elbo)):
-        axs[idx].plot(list(losses.history.values())[idx])
-        axs[idx].set_xlabel(list(losses.history.keys())[idx])
-    if plot_elbo:
-        axs[-1].plot([sum(values) for values in zip(*list(losses.history.values()))])
-        axs[-1].set_xlabel("ELBO")
+    idx = 0
+    for k, v in sorted(losses.history.items()):
+        axs[idx].plot(v)
+        axs[idx].set_title(k)
+        idx += 1
     return f
     
 def get_latent_space_statistics(decoder, encoder_mean, encoder_logvar, encoder_decoder = None, reconstruction_loss = vae_tools.mmvae.ReconstructionLoss.MSE, steps = 100, grid_min = norm.ppf(0.001), grid_max = norm.ppf(0.999), z_dim = int(2), alpha = 1., beta = 1.):

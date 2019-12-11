@@ -9,11 +9,14 @@ from PIL import Image
 from sklearn import manifold, datasets, decomposition, ensemble, discriminant_analysis, random_projection
 import vae_tools.viz
 from scipy.stats import norm
+import warnings
+
 
 class TbLosses(keras.callbacks.Callback):
     '''Stores the outputs of the loss layer to tensorboard'''
 
     def __init__(self, log_dir, data = None, tag_prefix = "training", log_every=1, writer = None, **kwargs):
+        warnings.warn("Losses are now added by the get_model function", DeprecationWarning, stacklevel=2)
         super().__init__( **kwargs)
         self.data = data
         self.history = {}
@@ -56,8 +59,13 @@ class TbLosses(keras.callbacks.Callback):
 
 
 class Losses(keras.callbacks.Callback):
-    '''Create a history which stores the ouputs of the loss layer after every epoch'''
+    '''Create a history which stores the ouputs of the loss layer after every epoch
+
+    The object of this class holds its own history attribute, which needs to be
+    investigated explicitly (by e.g. vae_tools.viz.plot_losses())
+    '''
     def __init__(self, data, only_train_end = False):
+        warnings.warn("Losses are now added by the get_model function", DeprecationWarning, stacklevel=2)
         self.data = data
         self.history = {}
         self.epoch = []
@@ -93,12 +101,13 @@ class Losses(keras.callbacks.Callback):
         # Store it to the history
         for k, v in zip(output_layer_names, output_layer_values):
             self.history.setdefault(k, []).append(v)
-    
+
 
 def get_tf_summary_image(plot_buf):
     img = Image.open(plot_buf)
     return K.expand_dims(tf.convert_to_tensor(np.array(img)), 0)
-        
+
+
 class TbDecoding2dGaussian(keras.callbacks.Callback):
     '''Plot the decoding of a images decoder assuming gaussian 2d prior in the latent space'''
     def __init__(self, log_dir, decoder_model, decoded_image_size = [28,28,1], num_images = 15, tag = "validation/decoding", log_every=1, writer = None, **kwargs):
