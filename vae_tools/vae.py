@@ -287,13 +287,14 @@ class LosslayerDistributionGaussianPrior(Losslayer):
         z_logvar = inputs[1]
 
         # Calculate the KL divergences wrt. the prior
-        kl_prior_loss = K.mean(self.weight * K.sum(custom_variational_layer.kl_loss_n(z_mean, z_logvar), axis=-1))
+        batch = self.weight * K.sum(custom_variational_layer.kl_loss_n(z_mean, z_logvar), axis=-1)
+        kl_prior_loss = K.mean(batch)
 
         # Define the final loss
         self.add_loss(kl_prior_loss, inputs=inputs)
 
-        # Return the loss value
-        return kl_prior_loss
+        # Return the scalar loss value expanded by one dimension so that tf2 can handle it as batch
+        return K.expand_dims(kl_prior_loss)
 
 
 # Custom loss layer for vanilla VAE
@@ -310,14 +311,14 @@ class LosslayerDistributionGaussianMutual(Losslayer):
         z_logvar_r = inputs[3]
 
         # Calculate the mutual KL divergences
-        kl_mutual_loss = K.mean(
-            self.weight * K.sum(custom_variational_layer.kl_loss(z_mean_l, z_logvar_l, z_mean_r, z_logvar_r), axis=-1))
+        batch = self.weight * K.sum(custom_variational_layer.kl_loss(z_mean_l, z_logvar_l, z_mean_r, z_logvar_r), axis=-1)
+        kl_mutual_loss = K.mean(batch)
 
         # Define the final loss
         self.add_loss(kl_mutual_loss, inputs=inputs)
 
-        # Return the loss value
-        return kl_mutual_loss
+        # Return the scalar loss value expanded by one dimension so that tf2 can handle it as batch
+        return K.expand_dims(kl_mutual_loss)
 
 
 class LosslayerReconstruction(Losslayer):
@@ -330,10 +331,10 @@ class LosslayerReconstruction(Losslayer):
 
     def call(self, inputs):
         '''Define the final loss'''
-        reconstruction_loss = self.metric(inputs)
-        self.add_loss(reconstruction_loss, inputs=inputs)
-        # Return the loss value
-        return reconstruction_loss
+        loss = self.metric(inputs)
+        self.add_loss(loss, inputs=inputs)
+        # Return the scalar loss value expanded by one dimension so that tf2 can handle it as batch
+        return K.expand_dims(loss)
 
 
 class LosslayerReconstructionMSE(LosslayerReconstruction):
@@ -346,8 +347,9 @@ class LosslayerReconstructionMSE(LosslayerReconstruction):
         '''We assume always a single input and ouput'''
         x = K.flatten(inputs[0])  # Inputs
         x_decoded = K.flatten(inputs[1])  # Output
-        # print("K.get_value(self.weight): ", K.get_value(self.weight))
-        return K.sum(self.weight * metrics.mean_squared_error(x, x_decoded))
+        batch = self.weight * metrics.binary_crossentropy(x, x_decoded)
+        loss = K.sum(batch)
+        return loss
 
 
 class LosslayerReconstructionBCE(LosslayerReconstruction):
@@ -360,5 +362,6 @@ class LosslayerReconstructionBCE(LosslayerReconstruction):
         '''We assume always a single input and ouput'''
         x = K.flatten(inputs[0])  # Inputs
         x_decoded = K.flatten(inputs[1])  # Output
-        # print("K.get_value(self.weight): ", K.get_value(self.weight))
-        return K.sum(self.weight * metrics.binary_crossentropy(x, x_decoded))
+        batch = self.weight * metrics.binary_crossentropy(x, x_decoded)
+        loss = K.sum(batch)
+        return loss

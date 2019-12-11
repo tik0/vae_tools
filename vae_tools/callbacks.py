@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow.keras.backend as K
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -30,8 +31,8 @@ class TbLosses(keras.callbacks.Callback):
             # Store it to the history
             for k, v in zip(output_layer_names, output_layer_values):
                 tag = tag_prefix + "/" + k.split('/')[0] + '/' + suffix
-                summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=v)])
-                self.writer.add_summary(summary, epoch)
+                tf.summary.scalar(tag, v, epoch)
+                self.writer.flush()
 
         if epoch%self.log_every==0:
             evaluate_data(self.data, tag_prefix = self.tag_prefix)
@@ -94,10 +95,9 @@ class Losses(keras.callbacks.Callback):
             self.history.setdefault(k, []).append(v)
     
 
-def get_tf_summary_image(tag, plot_buf):
+def get_tf_summary_image(plot_buf):
     img = Image.open(plot_buf)
-    img_sum = tf.Summary.Image(encoded_image_string=plot_buf.getvalue(), width=img.size[0], height=img.size[1])
-    return tf.Summary(value=[tf.Summary.Value(tag=tag, image=img_sum)])
+    return K.expand_dims(tf.convert_to_tensor(np.array(img)), 0)
         
 class TbDecoding2dGaussian(keras.callbacks.Callback):
     '''Plot the decoding of a images decoder assuming gaussian 2d prior in the latent space'''
@@ -142,8 +142,8 @@ class TbDecoding2dGaussian(keras.callbacks.Callback):
             return buf
 
         if epoch%self.log_every==0:
-            summary = get_tf_summary_image(tag=self.tag, plot_buf = plot_decoder(decoder_model = self.decoder_model))
-            self.writer.add_summary(summary, epoch)
+            img = get_tf_summary_image(plot_buf=plot_decoder(decoder_model=self.decoder_model))
+            tf.summary.image(self.tag, img, epoch)
             self.writer.flush()
         #super().on_epoch_end(epoch, logs)
 
@@ -197,8 +197,8 @@ class TbEmbedding(keras.callbacks.Callback):
             return buf
 
         if epoch%self.log_every==0:
-            summary = get_tf_summary_image(tag=self.tag, plot_buf = plot_encoder(encoder_model = self.encoder_model, data = self.data))
-            self.writer.add_summary(summary, epoch)
+            img = get_tf_summary_image(plot_buf=plot_encoder(encoder_model=self.encoder_model, data = self.data                                                                             ))
+            tf.summary.image(self.tag, img, epoch)
             self.writer.flush()
         #super().on_epoch_end(epoch, logs)
 
