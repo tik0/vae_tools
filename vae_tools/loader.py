@@ -10,6 +10,8 @@ from glob import glob
 from tensorflow import keras
 import random
 import requests
+import git
+import csv
 
 class GoogleDriveDownloader():
     def __init__(self):
@@ -355,3 +357,119 @@ def didactical_set(normalize_min_max = True, normalize_mean_var = False, noise_a
     w_train_shared = w_train
 
     return x_train, w_train, gt_train, x_test, w_test, gt_test
+
+
+def rubiks(num_tuples=int(10000), target_size=(30, 40), working_dir='/tmp'):
+    ''' Loads the rubiks data set
+
+    :param num_tuples: number of action tuples to create
+    :param target_size: target size of the images
+    :param working_dir: workfolder for git
+    :return: actionvector, viewpoint 1, viewpoint 2
+    '''
+
+    repo_name = 'rubiks-dataset'
+    repo_url = 'https://github.com/tik0/' + repo_name + '.git'
+    try:
+        git.Git(working_dir).clone(repo_url)
+    except Exception as e:
+        print(e)
+
+    data_dir = working_dir + '/' + repo_name + '/asset'
+    num_data = 19
+
+    sample_folders = ['bag_front_state_blue',
+                      'bag_front_state_green',
+                      'bag_front_state_orange',
+                      'bag_front_state_red',
+                      'bag_front_state_white',
+                      'bag_front_state_yellow',
+                      'bag_left_state_blue',
+                      'bag_left_state_green',
+                      'bag_left_state_orange',
+                      'bag_left_state_red',
+                      'bag_left_state_white',
+                      'bag_left_state_yellow',
+                      'bag_right_state_blue',
+                      'bag_right_state_green',
+                      'bag_right_state_orange',
+                      'bag_right_state_red',
+                      'bag_right_state_white',
+                      'bag_right_state_yellow']
+
+    def sample_cube_state(num_samples):
+        cube_colors = ['red', 'white', 'green', 'orange', 'yellow', 'blue']
+        cube_opposit_sides = [['blue', 'green'], ['white', 'yellow'], ['orange', 'red'], ['green', 'blue'],
+                              ['yellow', 'white'], ['red', 'orange']]
+        cube_states = {'left': [], 'front': [], 'right': []}
+        # sample left color
+        lookup_cube_colors = np.random.randint(0, high=len(cube_colors), size=num_samples)
+        for idx in lookup_cube_colors:
+            # Add the left view color
+            cube_states['left'].append(cube_colors[idx])
+            # Get the color of the opposit side
+            cube_opposit_side_color = [color[1] for color in cube_opposit_sides if color[0] == cube_colors[idx]]
+            cube_states['right'].append(cube_opposit_side_color[0])
+            # Sample the front view from the remaining colors
+            cube_colors_wo_left_right = cube_colors.copy()
+            cube_colors_wo_left_right.remove(cube_states['left'][-1])
+            cube_colors_wo_left_right.remove(cube_states['right'][-1])
+            cube_states['front'].append(cube_colors_wo_left_right[np.random.randint(0, high=4, size=1)[0]])
+        return cube_states
+
+    with open(data_dir + "/actions.csv", "r") as f:
+        reader = csv.reader(f, delimiter=',')
+        actions = [[x[0], x[1], float(x[2]), float(x[3]), float(x[4])] for x in list(reader)[1:]]
+        f.close()
+
+    with open(data_dir + "/colors.csv", "r") as f:
+        reader = csv.reader(f, delimiter=',')
+        colors = list(reader)[1:]
+        f.close()
+
+    # Read the poses and observations
+    def get_iterator(batch_size, data_sub_dir=""):
+        from tensorflow.keras.preprocessing.image import ImageDataGenerator
+        train_datagen = ImageDataGenerator(
+            rescale=1. / 255,
+            shear_range=0,
+            zoom_range=0,
+            horizontal_flip=False,
+            width_shift_range=0.0,  # randomly shift images horizontally (fraction of total width)
+            height_shift_range=0.0)  # randomly shift images vertically (fraction of total height))
+
+        train_generator = train_datagen.flow_from_directory(data_dir + "/" + data_sub_dir, interpolation='nearest',
+                                                            color_mode='rgb', shuffle=False, seed=None,
+                                                            target_size=target_size,
+                                                            batch_size=batch_size,
+                                                            # save_to_dir='img_0_augmented',
+                                                            class_mode=None)
+        return train_generator
+
+    X_train_set = {}
+    for sample_folder in sample_folders:
+        X_train_set[sample_folder] = get_iterator(num_data, sample_folder).next()
+
+    # Create the action/perception tuples
+    action_train = np.zeros((num_tuples, 3))
+    v1_train = np.zeros((num_tuples, target_size[0], target_size[1], 3))
+    v2_train = np.zeros((num_tuples, target_size[0], target_size[1], 3))
+    cube_states = sample_cube_state(num_samples=num_tuples)
+
+    lookup = np.random.randint(0, high=len(actions), size=num_tuples)
+    lookup_cube_state = np.random.randint(0, high=num_data, size=num_tuples)
+
+    for idx_lookup, idx in zip(lookup, range(num_tuples)):
+        # Get the action for the random sample
+        v1_text = actions[idx_lookup][0]
+        v2_text = actions[idx_lookup][1]
+        action_train[idx] = np.asarray(actions[idx_lookup][2:])
+        # Get the views for the action sample and a given cube state
+        random_vp_sample = np.random.randint(0, high=num_data, size=1)
+        v1_train[idx, :] = X_train_set['bag_' + v1_text + '_state_' + cube_states[v1_text][idx]][random_vp_sample[0]]
+        random_vp_sample = np.random.randint(0, high=num_data, size=1)
+        v2_train[idx, :] = X_train_set['bag_' + v2_text + '_state_' + cube_states[v2_text][idx]][random_vp_sample[0]]
+
+    # Normalize actions
+    action_train = (action_train + 1.) / 2.
+    return action_train, v1_train, v2_train
