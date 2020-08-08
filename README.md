@@ -25,6 +25,11 @@ This repository contains implementations and tools for multi-modal variational a
 
 TL;DR
 
+#### TODO
+
+- Port examples to TF2
+    - [AttributeError: module tensorboard.summary.tf.summary has no attribute 'FileWriter'](https://github.com/eriklindernoren/PyTorch-YOLOv3/issues/327): try to use tf.summary.create_file_writer('log_dir') in tensorflow 2.0
+
 <hr>
 
 ### :wrench: Key Features
@@ -65,7 +70,7 @@ Daily development version:
 
 ### 📢 Citations
 
-If you use Talos for published work, please cite:
+If you use M²VAE for published work, please cite:
 
 `Jointly Trained Variational Autoencoder for Multi-Modal Sensor Fusion. IEEE FUSION2019 (2019). Korthals T., et al.`
 

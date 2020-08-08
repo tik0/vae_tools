@@ -205,9 +205,9 @@ class GenericVae():
 
     def get_reconstruction_loss(self, rl, **kwargs):
         # Choose the proper reconstruction loss metric
-        if rl is ReconstructionLoss.MSE:
+        if rl == ReconstructionLoss.MSE:
             return LosslayerReconstructionMSE(**kwargs)
-        if rl is ReconstructionLoss.BCE:
+        if rl == ReconstructionLoss.BCE:
             return LosslayerReconstructionBCE(**kwargs)
         return rl(**kwargs) # we assume that rl is already a loss layer
 

@@ -365,7 +365,7 @@ def rubiks(num_tuples=int(10000), target_size=(30, 40), working_dir='/tmp'):
     :param num_tuples: number of action tuples to create
     :param target_size: target size of the images
     :param working_dir: workfolder for git
-    :return: actionvector, viewpoint 1, viewpoint 2
+    :return: actionvector, viewpoint 1, viewpoint 2, cube states, cube colors
     '''
 
     repo_name = 'rubiks-dataset'
@@ -396,9 +396,9 @@ def rubiks(num_tuples=int(10000), target_size=(30, 40), working_dir='/tmp'):
                       'bag_right_state_red',
                       'bag_right_state_white',
                       'bag_right_state_yellow']
+    cube_colors = ['red', 'white', 'green', 'orange', 'yellow', 'blue']
 
     def sample_cube_state(num_samples):
-        cube_colors = ['red', 'white', 'green', 'orange', 'yellow', 'blue']
         cube_opposit_sides = [['blue', 'green'], ['white', 'yellow'], ['orange', 'red'], ['green', 'blue'],
                               ['yellow', 'white'], ['red', 'orange']]
         cube_states = {'left': [], 'front': [], 'right': []}
@@ -472,4 +472,4 @@ def rubiks(num_tuples=int(10000), target_size=(30, 40), working_dir='/tmp'):
 
     # Normalize actions
     action_train = (action_train + 1.) / 2.
-    return action_train, v1_train, v2_train
+    return action_train, v1_train, v2_train, cube_states, cube_colors

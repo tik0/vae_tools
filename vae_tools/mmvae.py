@@ -192,7 +192,7 @@ class MmVae(GenericVae):
         latent_input               : Some own keras layers which should be used as input
         decoder_output_list  (list): List of decoder output layers for which the decoder should be build
 
-        rerturns a decoder model with the desired decoder outputs
+        returns a decoder model with the desired decoder outputs
         '''
         if latent_input is None:
             latent_input = Input(shape=(self.z_dim,))
