@@ -99,12 +99,12 @@ class GenericVae():
 
     @staticmethod
     def get_unnormalized_beta(beta_norm, x_dim, z_dim):
-        ''' Returns the unnormlized beta based on input (x) and output (z) dimeniosnality (_dim)
+        ''' Returns the unnormalized beta based on input (x) and output (z) dimeniosnality (_dim)
         '''
         return beta_norm * x_dim / z_dim
 
     def get_beta(self, x_dim=None):
-        ''' Interpretes the normalized beta value based on https://openreview.net/pdf?id=Sy2fzU9gl
+        ''' Interprets the normalized beta value based on https://openreview.net/pdf?id=Sy2fzU9gl
         x_dim    (int): The input dimensionality
 
         returns the beta value based on the normalized beta
@@ -123,35 +123,53 @@ class GenericVae():
         pass
 
     @staticmethod
-    def store_model(name=None, model=None, overwrite=False):
-        ''' Store any model'''
+    def store_model(name=None, model=None, overwrite=False, separate_arch_wgt = False):
+        ''' Stores a keras model:
+
+        name               (str): Name of the model to store (e.g. my_model)
+        model              (obj): keras model object
+        overwrite         (bool): Overwrite the model on the disk
+        separate_arch_wgt (bool): Store model and weights to separate files (json + hdf5) or in a single file (hdf5)
+        '''
         if model is None:
             raise Exception('Specify a model to store')
-        filename_json = name + ".json"
         filename_h5 = name + ".h5"
-        # serialize model to JSON
-        if not os.path.isfile(filename_json) or overwrite:
-            model_json = model.to_json()
-            with open(filename_json, "w") as json_file:
-                json_file.write(model_json)
-            print("Saved model " + name + " to disk")
-        if not os.path.isfile(filename_h5) or overwrite:
-            # serialize weights to HDF5
-            model.save_weights(filename_h5)
-            print("Saved weights of model " + name + " to disk")
+        if separate_arch_wgt:
+            filename_json = name + ".json"
+            # serialize model to JSON
+            if not os.path.isfile(filename_json) or overwrite:
+                model_json = model.to_json()
+                with open(filename_json, "w") as json_file:
+                    json_file.write(model_json)
+                print("Saved model " + name + " to disk")
+            if not os.path.isfile(filename_h5) or overwrite:
+                # serialize weights to HDF5
+                model.save_weights(filename_h5)
+                print("Saved weights of model " + name + " to disk")
+        else:
+            model.save(filename_h5)
+            print("Saved model and weights to disk: " + filename_h5)
+
 
     @staticmethod
-    def load_model(name):
-        ''' Load any model'''
-        filename_json = name + ".json"
+    def load_model(name, separate_arch_wgt = False):
+        ''' Load a keras model:
+
+        name               (str): Name of the model to load (e.g. my_model)
+        separate_arch_wgt (bool): Load model and weights from separate files (json + hdf5) or from a single file (hdf5)
+        '''
         filename_h5 = name + ".h5"
-        # load json and create model
-        json_file = open(filename_json, 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        loaded_model = model_from_json(loaded_model_json)
-        # load weights into new model
-        loaded_model.load_weights(filename_h5)
+        if separate_arch_wgt:
+            filename_json = name + ".json"
+            # load json and create model
+            json_file = open(filename_json, 'r')
+            loaded_model_json = json_file.read()
+            json_file.close()
+            loaded_model = model_from_json(loaded_model_json)
+            # load weights into new model
+            loaded_model.load_weights(filename_h5)
+        else:
+            loaded_model = tf.keras.models.load_model(filename_h5)
         print("Loaded model " + name + " from disk")
         return loaded_model
 
@@ -184,6 +202,9 @@ class GenericVae():
         enc_mean_xw_10: Encoder as the first list element with bitmask 10
         enc_mean_xw_01: Encoder as the second list element with bitmask 01
         enc_mean_xw_11: Encoder as the third list element with bitmask 11
+
+        prefix              (str): Some prefix name for storing json and h5 (e.g. enc_mean_xw_)
+        num_elements        (int): number of possible inputs (e.g. 2 for a bi-modal model)
 
         returns list of loaded models and corresponding bitmask
         '''
