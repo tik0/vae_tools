@@ -23,7 +23,6 @@ setup(
                       'tables==3.5.1'
                       'Pillow==5.3.0',
                       'coloredlogs==10.0',
-                      'matplotlib>=3.0.0',
                       'h5py==2.10.0',
                       'scikit-image==0.14.2',
                       'scikit-learn==0.20.0',
