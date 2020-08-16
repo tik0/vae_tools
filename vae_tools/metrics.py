@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
+from scipy.stats import multivariate_normal as mn
 from tensorflow import keras
 from tensorflow.keras.utils import model_to_dot
 from tensorflow.keras.layers import Input, Dense, Lambda, Flatten, Reshape, Layer
@@ -10,10 +11,56 @@ from tensorflow.keras import backend as K
 from tensorflow.keras import metrics
 import tensorflow as tf
 
+def js_loss(mean1, mean2, log_var1, log_var2, n_samples=10 ** 5):
+    ''' JS-divergence between two multinomial Gaussian distribution
+
+    mean1    (list): List of mean vectors [M1_1, M2_1, ...]
+    mean2    (list): List of mean vectors [M1_2, M2_2, ...]
+    log_var1 (list): List of log_var vectors [LV1_1, LV2_1, ...]
+    log_var2 (list): List of log_var vectors [LV2_2, LV2_2, ...]
+
+    returns the list of Jensen-Shannon divergences [JS1, JS2, ...]
+    '''
+
+    divs = np.zeros((len(mean1),1))
+    for m1, m2, v1, v2, idx in zip(mean1, mean2, np.exp(log_var1), np.exp(log_var2), range(len(mean1))):
+        p = mn(mean=m1, cov=v1)
+        q = mn(mean=m2, cov=v2)
+        divs[idx] = js(p, q, n_samples)
+
+    return divs
+
+def js(p, q, n_samples=10 ** 5):
+    ''' Jensen-Shannon divergence with Monte-Carlo approximation
+
+    p          (scipy.stats): Statistical continues function
+    q          (scipy.stats): Statistical continues function
+    n_samples:         (int): Number of samples for Monte-Carlo approximation
+
+    returns divergence [0., 1.] between the multinomial continues distributions p and q
+    '''
+
+    # Sample from p and q
+    X, Y = p.rvs(size=n_samples, random_state=0), q.rvs(size=n_samples, random_state=0)
+    # Evaluate p and q at samples from p
+    p_X, q_X = p.pdf(X), q.pdf(X)
+    # Evaluate p and q at samples from q
+    p_Y, q_Y = p.pdf(Y), q.pdf(Y)
+    # Evaluate the mixtures at samples from p and q
+    log_mix_X, log_mix_Y = np.log2(p_X + q_X), np.log2(p_Y + q_Y)
+
+    # calculate the Jensen-Shannon entropy
+    JS = (np.log2(p_X).mean() - (log_mix_X.mean() - np.log2(2))
+            + np.log2(q_Y).mean() - (log_mix_Y.mean() - np.log2(2))) / 2
+    return JS
+
+def kl_sym_loss(mean1, mean2, log_var1, log_var2):
+    '''Symmetric KL-divergence I (Divergence Measures Based on the Shannon Entropy - Jianhua Lin) between two Gaussian'''
+    return kl_loss(mean1, mean2, log_var1, log_var2) + kl_loss(mean2, mean1, log_var2, log_var1)
+
 def kl_loss(mean1, mean2, log_var1, log_var2):
     '''KL-divergence between two Gaussian'''
     return - .5 * (1 + log_var1 - log_var2 - ((np.exp(log_var1) + np.square(mean1 - mean2)) / np.exp(log_var2)))
-
 
 def kl_loss_n(mean, log_var):
     '''KL-divergence between an abitrary Gaussian and the normal distribution'''
