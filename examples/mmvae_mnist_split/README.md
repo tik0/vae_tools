@@ -22,9 +22,9 @@ CUDA_VISIBLE_DEVICES="" PYTHONPATH="/home/twbadmin/repositories/vae_tools" pytho
     - Stores the list of loss values in `h_list_*`
     - Stores the final loss values in `h_*`
 - Stores the networks ...
-    - encoder mean networks: `enc_mean_i<#index>_ab_<mask>.h5`
-    - encoder logvar networks: `enc_logvar_i<#index>_ab_<mask>.h5`
-    - decoder logvar network `dec_i<#index>_ab_<mask>.h5`
+    - encoder mean networks: `enc_mean_<#index>_ab_<mask>.h5`
+    - encoder logvar networks: `enc_logvar_<#index>_ab_<mask>.h5`
+    - decoder logvar network `dec_<#index>_ab_<mask>.h5`
 
 ## mmvae_mnist_split_eval.ipynb
 
