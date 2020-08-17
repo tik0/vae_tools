@@ -39,11 +39,26 @@ However, reducing the thread number of numpy's openblas to 2 allows parallel eva
 ```
 #!/bin/bash
 jupyter nbconvert --to python mmvae_mnist_split_eval_jsd.ipynb
-OPENBLAS_NUM_THREADS=2 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 5 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('0')" &
-OPENBLAS_NUM_THREADS=4 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 6 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('1')" &
-OPENBLAS_NUM_THREADS=4 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 7 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('2')" &
-OPENBLAS_NUM_THREADS=4 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 8 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('3')" &
-OPENBLAS_NUM_THREADS=4 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 9 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('4')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 5 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('0')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 6 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('1')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 7 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('2')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 8 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('3')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 9 python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('4')" &
 wait
 ```
 
+
+## mmvae_mnist_split_eval_bayes.ipynb
+
+Trains and predicts the Gaussian naive Bayes classifiers and evaluates all classifiers against all encoder predictions.
+
+```
+#!/bin/bash
+jupyter nbconvert --to python mmvae_mnist_split_eval_bayes.ipynb
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 5 python3 -c "import mmvae_mnist_split_eval_bayes; mmvae_mnist_split_eval_bayes.run('0')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 6 python3 -c "import mmvae_mnist_split_eval_bayes; mmvae_mnist_split_eval_bayes.run('1')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 7 python3 -c "import mmvae_mnist_split_eval_bayes; mmvae_mnist_split_eval_bayes.run('2')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 8 python3 -c "import mmvae_mnist_split_eval_bayes; mmvae_mnist_split_eval_bayes.run('3')" &
+OPENBLAS_NUM_THREADS=3 CUDA_VISIBLE_DEVICES=""  PYTHONPATH="/home/twbadmin/repositories/vae_tools" nice -n 9 python3 -c "import mmvae_mnist_split_eval_bayes; mmvae_mnist_split_eval_bayes.run('4')" &
+wait
+```

@@ -254,6 +254,41 @@ def emnist(flatten = False, split = 0.99):
     return x_train, w_train, label_train, x_test, w_test, label_test
 
 
+def mnist_split(flatten = False, split = 'hor'):
+    ''' Get the mnist data set w/ split modalities
+
+    flatten    (bool): Flat the data
+    split       (str): Splitting technique. One of ['hor', 'ver', 'quad']
+
+    returns the data set
+    '''
+
+    # Get the MNIST digits
+    (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+    x_train = x_train.astype('float32') / 255.
+    x_test = x_test.astype('float32') / 255.
+    if flatten:
+        x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+        x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+
+    # input image dimensions
+    img_rows, img_cols, img_chns = 28, 28, 1
+    original_dim = img_rows * img_cols * img_chns
+    split_dim = int(original_dim / 2)
+
+    if split == 'hor':
+        # Split it horizontally
+        x_train_a = x_train[:,:split_dim]
+        x_train_b = x_train[:,split_dim:]
+        x_test_a = x_test[:,:split_dim]
+        x_test_b = x_test[:,split_dim:]
+        x_train = (x_train_a, x_train_b)
+        x_test = (x_test_a, x_test_b)
+    else:
+        raise ValueError("TBD")
+
+    return x_train, x_test, y_train, y_test
+
 def lidar_camera_set(lidar_degree_around_center = 80., image_target_rows_cols_chns = (64, 64, 2)):
     ''' Load the lidar/camera data set 
     flatten     : Flatten the images
