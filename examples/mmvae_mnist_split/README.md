@@ -34,6 +34,18 @@ CUDA_VISIBLE_DEVICES="" PYTHONPATH=${PP} python3 -m mmvae_mnist_split_hpsearch
     - encoder logvar networks: `enc_logvar_<#index>_ab_<mask>.h5`
     - decoder logvar network `dec_<#index>_ab_<mask>.h5`
 
+
+```
+#!/bin/bash
+jupyter nbconvert --to python mmvae_mnist_split_hpsearch.ipynb
+PP="${HOME}/repositories/vae_tools"
+MAX_SEED=4
+for IDX in $(seq 0 ${MAX_SEED}); do
+    CUDA_VISIBLE_DEVICES="" PYTHONPATH=${PP} nice -n $(( ${IDX} + 1 )) python3 -c "import mmvae_mnist_split_hpsearch; mmvae_mnist_split_hpsearch.run(${IDX})" &
+done
+wait
+```
+
 ## mmvae_mnist_split_eval.ipynb
 
 Read all the training results and evaluates them
