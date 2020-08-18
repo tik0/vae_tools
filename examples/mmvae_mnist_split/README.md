@@ -17,13 +17,6 @@ Simple demonstration on how to train on a split MNIST data set
 
 This script is executed in the shell whth the specific seed value:
 
-```
-#!/bin/bash
-jupyter nbconvert --to python mmvae_mnist_split_hpsearch.ipynb;
-PP="${HOME}/repositories/vae_tools"
-CUDA_VISIBLE_DEVICES="" PYTHONPATH=${PP} python3 -m mmvae_mnist_split_hpsearch
-```
-
 - <#index> denotes a specific hyperparameter configuration
 - All files are stored wrt. to their seed in <dump_loc>/<#seed>
 - Stores the hyper parameters an loss history in pandas data frame `history.h5`
@@ -42,6 +35,21 @@ PP="${HOME}/repositories/vae_tools"
 MAX_SEED=4
 for IDX in $(seq 0 ${MAX_SEED}); do
     CUDA_VISIBLE_DEVICES="" PYTHONPATH=${PP} nice -n $(( ${IDX} + 1 )) python3 -c "import mmvae_mnist_split_hpsearch; mmvae_mnist_split_hpsearch.run(${IDX})" &
+done
+wait
+```
+
+## jmvae_mnist_split_hpsearch.ipynb
+
+This script is executed in the shell whth the specific seed value:
+
+```
+#!/bin/bash
+jupyter nbconvert --to python jmvae_mnist_split_hpsearch.ipynb
+PP="${HOME}/repositories/vae_tools"
+MAX_SEED=4
+for IDX in $(seq 0 ${MAX_SEED}); do
+    CUDA_VISIBLE_DEVICES="" PYTHONPATH=${PP} nice -n $(( ${IDX} + 1 )) python3 -c "import jmvae_mnist_split_hpsearch; jmvae_mnist_split_hpsearch.run(${IDX})" &
 done
 wait
 ```
