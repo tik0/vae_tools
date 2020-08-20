@@ -54,6 +54,25 @@ done
 wait
 ```
 
+evaluation:
+```
+#!/bin/bash
+jupyter nbconvert --to python mmvae_mnist_split_eval_jsd.ipynb
+ONT=3
+PP="${HOME}/repositories/vae_tools"
+MAX_SEED=4
+for IDX in $(seq 0 ${MAX_SEED}); do
+    OPENBLAS_NUM_THREADS=${ONT} CUDA_VISIBLE_DEVICES="" PYTHONPATH=${PP} nice -n $(( ${IDX} + 1 )) python3 -c "import mmvae_mnist_split_eval_jsd; mmvae_mnist_split_eval_jsd.run('${IDX}','/mnt/ssd_pcie/jmvae_mnist_split/')" &
+done
+wait
+
+jupyter nbconvert --to python mmvae_mnist_split_eval_bayes.ipynb
+for IDX in $(seq 0 ${MAX_SEED}); do
+    OPENBLAS_NUM_THREADS=${ONT} CUDA_VISIBLE_DEVICES="" PYTHONPATH=${PP} nice -n $(( ${IDX} + 1 )) python3 -c "import mmvae_mnist_split_eval_bayes; mmvae_mnist_split_eval_bayes.run('${IDX}','/mnt/ssd_pcie/jmvae_mnist_split/')" &
+done
+wait
+```
+
 ## mmvae_mnist_split_eval.ipynb
 
 Read all the training results and evaluates them
