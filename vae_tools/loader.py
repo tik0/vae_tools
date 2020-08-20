@@ -255,7 +255,7 @@ def emnist(flatten = False, split = 0.99):
 
 
 
-def split(flatten = False, split = 'hor'):
+def mnist_split(flatten = False, split = 'hor'):
     ''' Get the mnist data set w/ split modalities
 
     flatten    (bool): Flat the data
