@@ -254,11 +254,38 @@ def emnist(flatten = False, split = 0.99):
     return x_train, w_train, label_train, x_test, w_test, label_test
 
 
-def mnist_split(flatten = False, split = 'hor'):
+
+def split(flatten = False, split = 'hor'):
     ''' Get the mnist data set w/ split modalities
 
     flatten    (bool): Flat the data
     split       (str): Splitting technique. One of ['hor', 'ver', 'quad']
+
+    # Show horizontal split image
+    (x_train_a, x_train_b), (x_test_a, x_test_b), y_train, y_test = split(flatten = True, split = 'hor')
+    img_rows_2, img_cols, idx = 14, 28, 0
+    _, ax = plt.subplots(2,1,sharex=True)
+    ax[0].imshow(x_train_a[idx,:].reshape(((img_rows_2, img_cols))))
+    ax[1].imshow(x_train_b[idx,:].reshape((img_rows_2, img_cols))))
+    plt.show()
+
+    # Show vertical split image
+    (x_train_a, x_train_b), (x_test_a, x_test_b), y_train, y_test = split(flatten = True, split = 'ver')
+    img_rows, img_cols_2, idx = 28, 14, 0
+    _, ax = plt.subplots(1,2,sharey=True)
+    ax[0].imshow(x_train_a[idx,:].reshape(((img_rows, img_cols_2))))
+    ax[1].imshow(x_train_b[idx,:].reshape(((img_rows, img_cols_2))))
+    plt.show()
+
+    # Show quad split image
+    (x_train_a, x_train_b, x_train_c, x_train_d), (x_test_a, x_test_b, x_test_c, x_test_d), y_train, y_test = split(flatten = True, split = 'quad')
+    img_rows_2, img_cols_2, idx = 14, 14, 0
+    _, ax = plt.subplots(2,2,sharey=True, sharex=True)
+    ax[0,0].imshow(x_train_a[idx,:].reshape(((img_rows_2, img_cols_2))))
+    ax[0,1].imshow(x_train_b[idx,:].reshape(((img_rows_2, img_cols_2))))
+    ax[1,0].imshow(x_train_c[idx,:].reshape(((img_rows_2, img_cols_2))))
+    ax[1,1].imshow(x_train_d[idx,:].reshape(((img_rows_2, img_cols_2))))
+    plt.show()
 
     returns the data set
     '''
@@ -267,27 +294,56 @@ def mnist_split(flatten = False, split = 'hor'):
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
     x_train = x_train.astype('float32') / 255.
     x_test = x_test.astype('float32') / 255.
-    if flatten:
-        x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
-        x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
 
     # input image dimensions
     img_rows, img_cols, img_chns = 28, 28, 1
+    img_rows_2, img_cols_2 = int(img_rows / 2), int(img_cols / 2)
     original_dim = img_rows * img_cols * img_chns
-    split_dim = int(original_dim / 2)
+    split_dim, num_sets = -1, -1
+    num_train_images = len(y_train)
+    num_test_images = len(y_test)
 
     if split == 'hor':
+        split_dim, num_sets = int(original_dim / 2), 2
         # Split it horizontally
-        x_train_a = x_train[:,:split_dim]
-        x_train_b = x_train[:,split_dim:]
-        x_test_a = x_test[:,:split_dim]
-        x_test_b = x_test[:,split_dim:]
-        x_train = (x_train_a, x_train_b)
-        x_test = (x_test_a, x_test_b)
+        x_train_a = x_train[:,:img_rows_2,:]
+        x_train_b = x_train[:,img_rows_2:,:]
+        x_test_a = x_test[:,:img_rows_2,:]
+        x_test_b = x_test[:,img_rows_2:,:]
+        _x_train = [x_train_a, x_train_b]
+        _x_test = [x_test_a, x_test_b]
+    elif split == 'ver':
+        split_dim, num_sets = int(original_dim / 2), 2
+        # Split it horizontally
+        x_train_a = x_train[:,:,:img_cols_2]
+        x_train_b = x_train[:,:,img_cols_2:]
+        x_test_a = x_test[:,:,:img_cols_2]
+        x_test_b = x_test[:,:,img_cols_2:]
+        _x_train = [x_train_a, x_train_b]
+        _x_test = [x_test_a, x_test_b]
+    elif split == 'quad':
+        split_dim, num_sets = int(original_dim / 4), 4
+        # Split it horizontally
+        x_train_a = x_train[:,:img_rows_2,:img_cols_2]
+        x_train_b = x_train[:,:img_rows_2,img_cols_2:]
+        x_train_c = x_train[:,img_rows_2:,:img_cols_2]
+        x_train_d = x_train[:,img_rows_2:,img_cols_2:]
+        x_test_a = x_test[:,:img_rows_2,:img_cols_2]
+        x_test_b = x_test[:,:img_rows_2,img_cols_2:]
+        x_test_c = x_test[:,img_rows_2:,:img_cols_2]
+        x_test_d = x_test[:,img_rows_2:,img_cols_2:]
+        _x_train = [x_train_a, x_train_b, x_train_c, x_train_d]
+        _x_test = [x_test_a, x_test_b, x_test_c, x_test_d]
     else:
-        raise ValueError("TBD")
+        raise ValueError("Not supported")
 
-    return x_train, x_test, y_train, y_test
+    if flatten:
+        for idx in range(num_sets):
+            _x_train[idx] = _x_train[idx].reshape((num_train_images, split_dim))
+            _x_test[idx] = _x_test[idx].reshape((num_test_images, split_dim))
+
+    return tuple(_x_train), tuple(_x_test), y_train, y_test
+
 
 def lidar_camera_set(lidar_degree_around_center = 80., image_target_rows_cols_chns = (64, 64, 2)):
     ''' Load the lidar/camera data set 
