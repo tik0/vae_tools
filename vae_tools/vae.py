@@ -174,7 +174,7 @@ class GenericVae():
         return loaded_model
 
     @staticmethod
-    def store_model_powerset(prefix, model_inputs, get_model_callback=None, overwrite=False):
+    def store_model_powerset(prefix, model_inputs, get_model_callback=None, overwrite=False, **kwargs):
         ''' Stores the models of a powerset model given it's model inputs
         This function stores the models with the corresponding input as bitmask:
         e.g. store_model_powerset('enc_mean_xw_', vae_obj.encoder_inputs, vae_obj.get_encoder_mean)
@@ -187,12 +187,13 @@ class GenericVae():
         model_inputs       (list): List of keras input layers of the model in corresponding order of bitmask [input_x,input_w]
         get_model_callback   (cb): Callback function which returns a graph model given a subset of model inputs
         overwrite          (bool): Overwrite the model on the disk
+        **kwargs                 : Additional arguments for the get_model_callback callback
         '''
         bitmask_powerset, bitmask_powerset_str = setfun.get_bitmask_powerset(num_elements=len(model_inputs))
         for bitmask_set, bitmask_set_str in zip(bitmask_powerset[1:], bitmask_powerset_str[1:]):
             model_input = list(itertools.compress(model_inputs, bitmask_set))
             GenericVae.store_model(name=prefix + bitmask_set_str,
-                              model=get_model_callback(model_input), overwrite=overwrite)
+                              model=get_model_callback(model_input, **kwargs), overwrite=overwrite)
 
     @staticmethod
     def load_model_powerset(prefix, num_elements):

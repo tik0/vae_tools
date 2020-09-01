@@ -176,12 +176,24 @@ class MmVae(GenericVae):
         return self.model
     
     def get_encoder_mean(self, encoder_input_list, extra_inputs = []):
+        ''' Returns the decoder model with the mean layer
+        encoder_input_list   (list): List of encoder input layers for which the decoder should be build
+        extra_inputs         (list): List of additional inputs that are concatenated with the common input (see cvae.ipynb for an example)
+
+        returns an encoder model with the desired configuration
+        '''
         encoder_input_list_ref = [t.experimental_ref() for t in encoder_input_list]
         set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list_ref),
                                                  setfun.powerset(self.encoder_inputs_ref, sets_as_set = True))
         return Model(self.encoder_inputs_powerset[set_idx] + extra_inputs, self.Z_mean[set_idx])
     
     def get_encoder_logvar(self, encoder_input_list, extra_inputs = []):
+        ''' Returns the decoder model with the logvar layer
+        encoder_input_list   (list): List of encoder input layers for which the decoder should be build
+        extra_inputs         (list): List of additional inputs that are concatenated with the common input (see cvae.ipynb for an example)
+
+        returns an encoder model with the desired configuration
+        '''
         encoder_input_list_ref = [t.experimental_ref() for t in encoder_input_list]
         set_idx = setfun.get_set_idx_in_powerset(set(encoder_input_list_ref),
                                                  setfun.powerset(self.encoder_inputs_ref, sets_as_set = True))
@@ -191,6 +203,7 @@ class MmVae(GenericVae):
         ''' Returns the decoder model
         latent_input               : Some own keras layers which should be used as input
         decoder_output_list  (list): List of decoder output layers for which the decoder should be build
+        extra_inputs         (list): List of additional inputs that are concatenated with the common input (see cvae.ipynb for an example)
 
         returns a decoder model with the desired decoder outputs
         '''
@@ -214,7 +227,14 @@ class MmVae(GenericVae):
         return Model([latent_input] + extra_inputs, decoder_outputs)
     
     def get_encoder_decoder(self, encoder_input_list, extra_inputs = []):
-        '''ATTENTION: This model applies sampling in the hidden layer'''
+        ''' Returns the decoder model
+        ATTENTION: This model applies sampling in the hidden layer
+
+        encoder_input_list   (list): List of encoder input layers for which the model should be build
+        extra_inputs         (list): List of additional inputs that are concatenated with the common input (see cvae.ipynb for an example)
+
+        returns an end-to-end encoder-decoder model with sampling in the hidden layer
+        '''
         model_encoder_mean = self.get_encoder_mean(encoder_input_list)
         model_encoder_logvar = self.get_encoder_logvar(encoder_input_list)
         input_encoder_mean = Input(shape=(self.z_dim,))
