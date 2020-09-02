@@ -361,16 +361,18 @@ class LosslayerReconstruction(Losslayer):
 
 
 class LosslayerReconstructionMSE(LosslayerReconstruction):
-    '''Loss layer for element-wise reconstruction with binary cross-entropy'''
+    '''Loss layer for element-wise reconstruction with mean squared error'''
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def metric(self, inputs):
-        '''We assume always a single input and ouput'''
+        '''We assume always a single target (VAE input = inputs[0]) and prediction (VAE output = inputs[1])'''
+        if len(inputs) > 2:
+            raise Exception("only two inputs are allowed (e.g. VAE encoder input vs VAE decoder output")
         x = K.flatten(inputs[0])  # Inputs
         x_decoded = K.flatten(inputs[1])  # Output
-        batch = self.weight * metrics.binary_crossentropy(x, x_decoded)
+        batch = self.weight * metrics.mean_squared_error(x, x_decoded)
         loss = K.sum(batch)
         return loss
 
@@ -382,7 +384,9 @@ class LosslayerReconstructionBCE(LosslayerReconstruction):
         super().__init__(**kwargs)
 
     def metric(self, inputs):
-        '''We assume always a single input and ouput'''
+        '''We assume always a single target (VAE input = inputs[0]) and prediction (VAE output = inputs[1])'''
+        if len(inputs) > 2:
+            raise Exception("only two inputs are allowed (e.g. VAE encoder input vs VAE decoder output")
         x = K.flatten(inputs[0])  # Inputs
         x_decoded = K.flatten(inputs[1])  # Output
         batch = self.weight * metrics.binary_crossentropy(x, x_decoded)

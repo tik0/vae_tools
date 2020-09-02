@@ -51,15 +51,16 @@ class GoogleDriveDownloader():
                     
 def mnist(new_shape = (28, 28, 1), kind='digit', get_single_label = None):
     '''
-    digit (str): digit or fashion
-    get_single_label (int): lable between 0 .. 9
+    new_shape (tuple): desired shape of the data set
+    kind (str): digit or fashion
+    get_single_label (int): label between 0 .. 9
     '''
     if kind == 'digit':
         (train, train_label), (test, test_label) = keras.datasets.mnist.load_data()
     elif kind == 'fashion':
         (train, train_label), (test, test_label) = keras.datasets.fashion_mnist.load_data()
     else:
-        raise
+        raise Exception("Choose digit or fashion")
     train = train.astype('float32') / 255.
     train = train.reshape((train.shape[0],) + new_shape)
     test = test.astype('float32') / 255.
@@ -187,7 +188,7 @@ def overlay_sets(x_set_input, w_set_input, x_set_label_input, w_set_label_input)
     label_set = x_set_label_input
     return x_set, w_set, label_set
 
-def mnist_digit_fashion(new_shape = (28, 28, 1), flatten = False):
+def mnist_digit_fashion(new_shape = (28, 28, 1), flatten = False, shuffle = True):
     ''' Load the mnist digit and fashion data set 
     new_shape   : Desired shape of the mnist images
     flatten     : Flatten the images
@@ -207,10 +208,11 @@ def mnist_digit_fashion(new_shape = (28, 28, 1), flatten = False):
         x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
         w_test = w_test.reshape((len(w_test), np.prod(w_test.shape[1:])))
     # Shuffle the training set
-    shuffle_idx = np.arange(0,len(x_train))
-    random.shuffle(shuffle_idx)
-    x_train = x_train[shuffle_idx]
-    w_train = w_train[shuffle_idx]
+    if shuffle:
+        shuffle_idx = np.arange(0,len(x_train))
+        random.shuffle(shuffle_idx)
+        x_train = x_train[shuffle_idx]
+        w_train = w_train[shuffle_idx]
     return x_train, w_train, label_train, x_test, w_test, label_test
         
 
@@ -254,44 +256,69 @@ def emnist(flatten = False, split = 0.99):
     return x_train, w_train, label_train, x_test, w_test, label_test
 
 
-
-def mnist_split(flatten = False, split = 'hor'):
+def mnist_split(flatten = False, split = 'hor', to_zero = False, kind='digit'):
     ''' Get the mnist data set w/ split modalities
 
     flatten    (bool): Flat the data
     split       (str): Splitting technique. One of ['hor', 'ver', 'quad']
+    to_zero    (bool): Instead of splitting, zero the neglected values
+    kind (str): digit or fashion
 
     # Show horizontal split image
-    (x_train_a, x_train_b), (x_test_a, x_test_b), y_train, y_test = split(flatten = True, split = 'hor')
+    (x_train_a, x_train_b), (x_test_a, x_test_b), y_train, y_test = mnist_split(flatten = True, split = 'hor')
     img_rows_2, img_cols, idx = 14, 28, 0
     _, ax = plt.subplots(2,1,sharex=True)
-    ax[0].imshow(x_train_a[idx,:].reshape(((img_rows_2, img_cols))))
-    ax[1].imshow(x_train_b[idx,:].reshape((img_rows_2, img_cols))))
+    ax[0].imshow(x_train_a[idx,:].reshape((img_rows_2, img_cols)))
+    ax[1].imshow(x_train_b[idx,:].reshape((img_rows_2, img_cols)))
     plt.show()
 
     # Show vertical split image
-    (x_train_a, x_train_b), (x_test_a, x_test_b), y_train, y_test = split(flatten = True, split = 'ver')
+    (x_train_a, x_train_b), (x_test_a, x_test_b), y_train, y_test = mnist_split(flatten = True, split = 'ver')
     img_rows, img_cols_2, idx = 28, 14, 0
     _, ax = plt.subplots(1,2,sharey=True)
-    ax[0].imshow(x_train_a[idx,:].reshape(((img_rows, img_cols_2))))
-    ax[1].imshow(x_train_b[idx,:].reshape(((img_rows, img_cols_2))))
+    ax[0].imshow(x_train_a[idx,:].reshape((img_rows, img_cols_2)))
+    ax[1].imshow(x_train_b[idx,:].reshape((img_rows, img_cols_2)))
     plt.show()
 
     # Show quad split image
-    (x_train_a, x_train_b, x_train_c, x_train_d), (x_test_a, x_test_b, x_test_c, x_test_d), y_train, y_test = split(flatten = True, split = 'quad')
+    (x_train_a, x_train_b, x_train_c, x_train_d), (x_test_a, x_test_b, x_test_c, x_test_d), y_train, y_test = mnist_split(flatten = True, split = 'quad')
     img_rows_2, img_cols_2, idx = 14, 14, 0
     _, ax = plt.subplots(2,2,sharey=True, sharex=True)
-    ax[0,0].imshow(x_train_a[idx,:].reshape(((img_rows_2, img_cols_2))))
-    ax[0,1].imshow(x_train_b[idx,:].reshape(((img_rows_2, img_cols_2))))
-    ax[1,0].imshow(x_train_c[idx,:].reshape(((img_rows_2, img_cols_2))))
-    ax[1,1].imshow(x_train_d[idx,:].reshape(((img_rows_2, img_cols_2))))
+    ax[0,0].imshow(x_train_a[idx,:].reshape((img_rows_2, img_cols_2)))
+    ax[0,1].imshow(x_train_b[idx,:].reshape((img_rows_2, img_cols_2)))
+    ax[1,0].imshow(x_train_c[idx,:].reshape((img_rows_2, img_cols_2)))
+    ax[1,1].imshow(x_train_d[idx,:].reshape((img_rows_2, img_cols_2)))
+    plt.show()
+
+    # Show vertical zeroed image
+    (x_train_a, x_train_b), _, _, _ = mnist_split(flatten = True, split = 'ver', to_zero = True)
+    img_rows, img_cols, idx = 28, 28, 0
+    _, axs = plt.subplots(1,2, sharey=True)
+    axs[0].imshow(x_train_a[idx,:].reshape((img_rows, img_cols)))
+    axs[1].imshow(x_train_b[idx,:].reshape((img_rows, img_cols)))
+    plt.show()
+
+    # Show quad zeroed image
+    (x_train_a, x_train_b, x_train_c, x_train_d), _, _, _ = mnist_split(flatten = True, split = 'quad', to_zero = True)
+    img_rows, img_cols, idx = 28, 28, 0
+    _, axs = plt.subplots(2,2, sharex=True, sharey=True)
+    axs[0, 0].imshow(x_train_a[idx,:].reshape((img_rows, img_cols)))
+    axs[0, 1].imshow(x_train_b[idx,:].reshape((img_rows, img_cols)))
+    axs[1, 0].imshow(x_train_c[idx,:].reshape((img_rows, img_cols)))
+    axs[1, 1].imshow(x_train_d[idx,:].reshape((img_rows, img_cols)))
     plt.show()
 
     returns the data set
     '''
 
-    # Get the MNIST digits
-    (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+    # Get the MNIST digits/fashion set
+    if kind == 'digit':
+        (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+    elif kind == 'fashion':
+        (x_train, y_train), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()
+    else:
+        raise Exception("Choose digit or fashion")
+
     x_train = x_train.astype('float32') / 255.
     x_test = x_test.astype('float32') / 255.
 
@@ -303,35 +330,71 @@ def mnist_split(flatten = False, split = 'hor'):
     num_train_images = len(y_train)
     num_test_images = len(y_test)
 
+    def get_mnist_zeros(num_sets = 2):
+        train_set = [np.zeros((num_train_images, img_cols, img_rows), dtype='float32') for _ in range(num_sets)]
+        test_set = [np.zeros((num_test_images, img_cols, img_rows), dtype='float32') for _ in range(num_sets)]
+        return tuple(train_set + test_set)
+
     if split == 'hor':
-        split_dim, num_sets = int(original_dim / 2), 2
-        # Split it horizontally
-        x_train_a = x_train[:,:img_rows_2,:]
-        x_train_b = x_train[:,img_rows_2:,:]
-        x_test_a = x_test[:,:img_rows_2,:]
-        x_test_b = x_test[:,img_rows_2:,:]
-        _x_train = [x_train_a, x_train_b]
+        num_sets = 2
+        # Split horizontally
+        if to_zero:
+            split_dim = original_dim
+            (x_train_a, x_train_b, x_test_a, x_test_b) = get_mnist_zeros(num_sets)
+            x_train_a[:,:img_rows_2,:] = x_train[:,:img_rows_2,:]
+            x_train_b[:,img_rows_2:,:] = x_train[:,img_rows_2:,:]
+            x_test_a[:,:img_rows_2,:]  = x_test[:,:img_rows_2,:]
+            x_test_b[:,img_rows_2:,:]  = x_test[:,img_rows_2:,:]
+        else:
+            split_dim = int(original_dim / 2)
+            x_train_a = x_train[:,:img_rows_2,:]
+            x_train_b = x_train[:,img_rows_2:,:]
+            x_test_a  = x_test[:,:img_rows_2,:]
+            x_test_b  = x_test[:,img_rows_2:,:]
+        _x_train  = [x_train_a, x_train_b]
         _x_test = [x_test_a, x_test_b]
     elif split == 'ver':
-        split_dim, num_sets = int(original_dim / 2), 2
-        # Split it horizontally
-        x_train_a = x_train[:,:,:img_cols_2]
-        x_train_b = x_train[:,:,img_cols_2:]
-        x_test_a = x_test[:,:,:img_cols_2]
-        x_test_b = x_test[:,:,img_cols_2:]
+        num_sets = 2
+        # Split vertically
+        if to_zero:
+            split_dim = original_dim
+            (x_train_a, x_train_b, x_test_a, x_test_b) = get_mnist_zeros(num_sets)
+            x_train_a[:,:,:img_cols_2] = x_train[:,:,:img_cols_2]
+            x_train_b[:,:,img_cols_2:] = x_train[:,:,img_cols_2:]
+            x_test_a[:,:,:img_cols_2] = x_test[:,:,:img_cols_2]
+            x_test_b[:,:,img_cols_2:] = x_test[:,:,img_cols_2:]
+        else:
+            split_dim = int(original_dim / 2)
+            x_train_a = x_train[:,:,:img_cols_2]
+            x_train_b = x_train[:,:,img_cols_2:]
+            x_test_a = x_test[:,:,:img_cols_2]
+            x_test_b = x_test[:,:,img_cols_2:]
         _x_train = [x_train_a, x_train_b]
         _x_test = [x_test_a, x_test_b]
     elif split == 'quad':
-        split_dim, num_sets = int(original_dim / 4), 4
-        # Split it horizontally
-        x_train_a = x_train[:,:img_rows_2,:img_cols_2]
-        x_train_b = x_train[:,:img_rows_2,img_cols_2:]
-        x_train_c = x_train[:,img_rows_2:,:img_cols_2]
-        x_train_d = x_train[:,img_rows_2:,img_cols_2:]
-        x_test_a = x_test[:,:img_rows_2,:img_cols_2]
-        x_test_b = x_test[:,:img_rows_2,img_cols_2:]
-        x_test_c = x_test[:,img_rows_2:,:img_cols_2]
-        x_test_d = x_test[:,img_rows_2:,img_cols_2:]
+        num_sets = 4
+        # Split quad
+        if to_zero:
+            split_dim = original_dim
+            (x_train_a, x_train_b, x_train_c, x_train_d, x_test_a, x_test_b, x_test_c, x_test_d) = get_mnist_zeros(num_sets)
+            x_train_a[:,:img_rows_2,:img_cols_2] = x_train[:,:img_rows_2,:img_cols_2]
+            x_train_b[:,:img_rows_2,img_cols_2:] = x_train[:,:img_rows_2,img_cols_2:]
+            x_train_c[:,img_rows_2:,:img_cols_2] = x_train[:,img_rows_2:,:img_cols_2]
+            x_train_d[:,img_rows_2:,img_cols_2:] = x_train[:,img_rows_2:,img_cols_2:]
+            x_test_a[:,:img_rows_2,:img_cols_2] = x_test[:,:img_rows_2,:img_cols_2]
+            x_test_b[:,:img_rows_2,img_cols_2:] = x_test[:,:img_rows_2,img_cols_2:]
+            x_test_c[:,img_rows_2:,:img_cols_2] = x_test[:,img_rows_2:,:img_cols_2]
+            x_test_d[:,img_rows_2:,img_cols_2:] = x_test[:,img_rows_2:,img_cols_2:]
+        else:
+            split_dim = int(original_dim / 4)
+            x_train_a = x_train[:,:img_rows_2,:img_cols_2]
+            x_train_b = x_train[:,:img_rows_2,img_cols_2:]
+            x_train_c = x_train[:,img_rows_2:,:img_cols_2]
+            x_train_d = x_train[:,img_rows_2:,img_cols_2:]
+            x_test_a = x_test[:,:img_rows_2,:img_cols_2]
+            x_test_b = x_test[:,:img_rows_2,img_cols_2:]
+            x_test_c = x_test[:,img_rows_2:,:img_cols_2]
+            x_test_d = x_test[:,img_rows_2:,img_cols_2:]
         _x_train = [x_train_a, x_train_b, x_train_c, x_train_d]
         _x_test = [x_test_a, x_test_b, x_test_c, x_test_d]
     else:
