@@ -28,7 +28,7 @@ class JmVae(MmVae):
                      beta_mutual=alpha,
                      reconstruction_loss_metrics=reconstruction_loss_metrics,
                      latent_encoder=latent_encoder,
-                     shared_weights=True,
+                     shared_weights=shared_weights,
                      name=name)
 
 
