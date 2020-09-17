@@ -26,20 +26,28 @@ class MmVae(GenericVae):
                  reconstruction_loss_metrics = [ReconstructionLoss.MSE],
                  latent_encoder = None,
                  sampling_obj = None,
+                 shared_weights = True,
                  name='MmVae'):
+
         super().__init__(z_dim=z_dim, encoder=encoder, decoder=decoder,name=name,
                          reconstruction_loss_metrics = reconstruction_loss_metrics,
                          beta = beta, beta_is_normalized = beta_is_normalized,
                          encoder_inputs_dim = encoder_inputs_dim)
+
         if sampling_obj is None: # Use standard sampling with linear mean and logvar layer
             self.sampling_obj = sampling.RandN(self.z_dim)
         else:
             self.sampling_obj = sampling_obj
         self.beta_mutual = beta_mutual
         self.latent_encoder = latent_encoder
+        self.shared_weights = shared_weights
+
+        # Finally configure
         self.y = self._configure()
 
     def _configure(self):
+
+        layer_copy_sanity_idx = 0
         
         # build the encoder outputs for the whole powerset
         encoder_outputs_powerset = [] # Holds M=|encoder_powerset|-1 encoder networks
@@ -49,7 +57,13 @@ class MmVae(GenericVae):
                 element_output.append(encoder_element[0]) # The first element is always an input layer
                 # Append the next layer to the currently appended element in the set
                 for encoder_layer in encoder_element[1:]:
-                    element_output[-1] = encoder_layer(element_output[-1])
+                    if self.shared_weights:
+                        element_output[-1] = encoder_layer(element_output[-1])
+                    else:
+                        c = encoder_layer.get_config()
+                        c['name'] = c['name'] + '_' + str(layer_copy_sanity_idx)
+                        element_output[-1] = encoder_layer.__class__.from_config(c)(element_output[-1])
+                        layer_copy_sanity_idx = layer_copy_sanity_idx + 1
             # Concat all elements of the current set and append a latent encoder if desired
             if len(element_output) > 1:
                 encoder_outputs_powerset.append(concat(element_output))

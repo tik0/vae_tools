@@ -13,10 +13,14 @@ class JmVae(MmVae):
                  beta_is_normalized=False,
                  reconstruction_loss_metrics=[ReconstructionLoss.MSE],
                  latent_encoder=None,
+                 shared_weights=True,
                  name='JmVae'):
         if len(encoder) > 2:
             raise Exception("> 2 modalities are not supported by the paper")
 
+        self.alpha = alpha
+
+        # This init configures already
         super().__init__(z_dim=z_dim, encoder=encoder, decoder=decoder,
                      encoder_inputs_dim=encoder_inputs_dim,
                      beta = beta,
@@ -24,9 +28,9 @@ class JmVae(MmVae):
                      beta_mutual=alpha,
                      reconstruction_loss_metrics=reconstruction_loss_metrics,
                      latent_encoder=latent_encoder,
+                     shared_weights=True,
                      name=name)
 
-        self.alpha = alpha
 
     def _losses_reconstruction(self):
         ''' Returns the reconstruction for the bi-modal set'''
