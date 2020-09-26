@@ -17,7 +17,7 @@ setup(
     author_email='tkorthals@cit-ec.uni-bielefeld.de',
     url='https://github.com/tik0/vae_tools',
     license=license,
-    install_requires=['tensorflow==2.0.2',
+    install_requires=['tensorflow==2.0.3',
                       'tensorboard==2.0.2',
                       'numpy==1.17.4',
                       'tables==3.5.1'
