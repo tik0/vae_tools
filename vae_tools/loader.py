@@ -12,6 +12,7 @@ import random
 import requests
 import git
 import csv
+import vae_tools
 
 class GoogleDriveDownloader():
     def __init__(self):
@@ -72,6 +73,42 @@ def mnist(new_shape = (28, 28, 1), kind='digit', get_single_label = None):
         train_label = train_label[train_label == label]
         test_label = test_label[test_label == label]
     return train, train_label, test, test_label
+
+def xor(use_placeholder = False, placeholder_val=.5):
+    ''' The XOR data set
+    use_placeholder (bool): will format the XOR data set with an additional placeholder
+    placeholder_val (float): the value of the placeholder
+
+    returns x and y as the in- and output of the XOR gate-logic
+    '''
+    if not use_placeholder:
+        x = np.array([
+            0, 0,
+            0, 1,
+            1, 0,
+            1, 1
+        ]).reshape(4, 2)
+        y = np.array([0, 1, 1, 0]).reshape(4, 1)
+    else:
+        v = placeholder_val
+        x = np.array([
+            0, 0,
+            0, 1,
+            1, 0,
+            1, 1,
+            v, v,
+            v, v,
+            v, v,
+            v, v,
+            0, 0,
+            0, 1,
+            1, 0,
+            1, 1
+        ]).reshape(12, 2)
+
+        y = np.array([0, 1, 1, 0, 0, 1, 1, 0, v, v, v, v, ]).reshape(12, 1)
+
+    return x, y
 
 def camera_lidar(filename, folder_sets, filename_camera, filename_lidar, measurements_per_file, image_shape_old, image_shape_new, lidar_shape_old, lidar_shape_new, lidar_range_max = 5., overwrite = False):
     ''' Loading the camera/lidar set and storing the processed data in a temporary file for faster reloading
@@ -442,7 +479,7 @@ def didactical_set(normalize_min_max = True, normalize_mean_var = False, noise_a
     noise_amp_x          : Attribute for noise in modality x
     noise_amp_w          : Attribute for noise in modality w
     '''
-    _, gt_set, _, _ = loader.mnist()
+    _, gt_set, _, _ = vae_tools.loader.mnist()
     size = len(gt_set)
     num_mnist_class = 10
     label_pose_rad = np.linspace(0, 2*np.pi, num=num_mnist_class, endpoint=True, dtype=float) # collapse first and last mean
