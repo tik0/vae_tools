@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <a href="https://github.com/tik0/vae_tools"><img src="https://github.com/tik0/vae_tools/raw/dev_cvae/docs/media/vae_tools.png" alt="vae_tools" width="350"></a>
+  <a href="https://github.com/tik0/vae_tools"><img src="https://github.com/tik0/vae_tools/raw/dev_cvae/docs/media/vae_tools.png" alt="vae_tools" width="500"></a>
   <br>
 </h1>
 
