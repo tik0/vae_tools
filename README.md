@@ -1,13 +1,13 @@
 <h1 align="center">
   <br>
-  <a href="https://github.com/tik0/vae_tools"><img src="https://github.com/tik0/vae_tools/raw/dev/docs/media/MMVAE.png" alt="MMVAE" width="350"></a>
+  <a href="https://github.com/tik0/vae_tools"><img src="https://github.com/tik0/vae_tools/raw/dev/docs/media/vae_tools.png" alt="MMVAE" width="350"></a>
   <br>
 </h1>
 
-<h3 align="center">Multi-Modal Variational Autoencoder (M²VAE) for Keras</h3>
+<h3 align="center">vae_tools for Keras</h3>
 
 <p align="center">
-  <a href="#M²VAE">M²VAE</a> •
+  <a href="#vae_tools">vae_tools</a> •
   <a href="#Key-Features">Key Features</a> •
   <a href="#Examples">Examples</a> •
   <a href="#Install">Install</a> •
@@ -21,20 +21,26 @@
 <p align="center">
 This repository contains implementations and tools for multi-modal variational autoencoder (M²VAE) to learn coherent unsupervised latent features from correlated observations.
 
-### M²VAE
+### vae_tools
+
+TBD
+
+### :wrench: Key Features
+
+TBD
+
+#### M²VAE
 
 TL;DR
 
-#### TODO
+##### TODO
 
 - Port examples to TF2
     - [AttributeError: module tensorboard.summary.tf.summary has no attribute 'FileWriter'](https://github.com/eriklindernoren/PyTorch-YOLOv3/issues/327): try to use tf.summary.create_file_writer('log_dir') in tensorflow 2.0
 
 <hr>
 
-### :wrench: Key Features
 
-TBD
 
 <hr>
 
